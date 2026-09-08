@@ -376,10 +376,12 @@
   <div class="view" id="view-program">
     <section class="sec" id="program"></section>
   </div>
+  <div class="view" id="view-labs">
+    <div id="labs"></div>
+  </div>
   <div class="view" id="view-plan">
     <section class="sec" id="graphs"></section>
     <section class="sec" id="log"></section>
-    <div id="labs"></div>
     <div id="orphans"></div>
   </div>
 </div>
@@ -633,23 +635,116 @@ function levelSection(p) {
 
 /* ---------- labs ---------- */
 const LAB_MARKERS = [
-  ['E2', 'Estradiol (E2)', 'pg/mL', 'Hormones'], ['TT', 'Total testosterone', 'ng/dL', 'Hormones'], ['FT', 'Free testosterone', 'pg/mL', 'Hormones'], ['SHBG', 'SHBG', 'nmol/L', 'Hormones'],
-  ['LH', 'LH', 'mIU/mL', 'Hormones'], ['FSH', 'FSH', 'mIU/mL', 'Hormones'], ['PRL', 'Prolactin', 'ng/mL', 'Hormones'], ['DHEAS', 'DHEA-S', 'µg/dL', 'Hormones'], ['IGF1', 'IGF-1', 'ng/mL', 'Hormones'], ['CORT', 'Cortisol (AM)', 'µg/dL', 'Hormones'],
-  ['TSH', 'TSH', 'mIU/L', 'Thyroid'], ['FT4', 'Free T4', 'ng/dL', 'Thyroid'], ['FT3', 'Free T3', 'pg/mL', 'Thyroid'],
-  ['HCT', 'Hematocrit', '%', 'Blood'], ['HGB', 'Hemoglobin', 'g/dL', 'Blood'], ['RBC', 'RBC', 'M/µL', 'Blood'], ['WBC', 'WBC', 'K/µL', 'Blood'], ['PLT', 'Platelets', 'K/µL', 'Blood'],
-  ['FERR', 'Ferritin', 'ng/mL', 'Iron'], ['IRON', 'Iron', 'µg/dL', 'Iron'], ['TIBC', 'TIBC', 'µg/dL', 'Iron'], ['TSAT', 'Iron saturation', '%', 'Iron'],
-  ['VITD', 'Vitamin D (25-OH)', 'ng/mL', 'Vitamins'], ['B12', 'Vitamin B12', 'pg/mL', 'Vitamins'], ['FOL', 'Folate', 'ng/mL', 'Vitamins'], ['MG', 'Magnesium', 'mg/dL', 'Vitamins'], ['ZN', 'Zinc', 'µg/dL', 'Vitamins'],
-  ['GLU', 'Fasting glucose', 'mg/dL', 'Metabolic'], ['A1C', 'HbA1c', '%', 'Metabolic'], ['INS', 'Fasting insulin', 'µIU/mL', 'Metabolic'],
-  ['TC', 'Total cholesterol', 'mg/dL', 'Lipids'], ['LDL', 'LDL', 'mg/dL', 'Lipids'], ['HDL', 'HDL', 'mg/dL', 'Lipids'], ['TG', 'Triglycerides', 'mg/dL', 'Lipids'], ['APOB', 'ApoB', 'mg/dL', 'Lipids'], ['LPA', 'Lp(a)', 'nmol/L', 'Lipids'],
-  ['ALT', 'ALT', 'U/L', 'Liver & kidney'], ['AST', 'AST', 'U/L', 'Liver & kidney'], ['GGT', 'GGT', 'U/L', 'Liver & kidney'], ['CREA', 'Creatinine', 'mg/dL', 'Liver & kidney'], ['EGFR', 'eGFR', 'mL/min', 'Liver & kidney'], ['BUN', 'BUN', 'mg/dL', 'Liver & kidney'],
-  ['PSA', 'PSA', 'ng/mL', 'Other'], ['CRP', 'hs-CRP', 'mg/L', 'Other'], ['HCY', 'Homocysteine', 'µmol/L', 'Other'], ['BP', 'Blood pressure (systolic)', 'mmHg', 'Other'], ['WT', 'Body weight', 'lb', 'Other'],
-  ['OTHER', 'Other…', '', 'Other']
+  { id:"E2", name:"Estradiol (E2)", unit:"pg/mL", group:"Hormones", aliases:["Estradiol"], info:{high:"In men, elevated estradiol often reflects aromatization of testosterone (more with higher body fat, or during testosterone therapy) and can contribute to water retention or breast tenderness; reviewed alongside testosterone and SHBG.",low:"Low estradiol in men can affect bone density and lipids over time, and often tracks with low testosterone.",related:["TT","FT","SHBG"]} },
+  { id:"TT", name:"Total testosterone", unit:"ng/dL", group:"Hormones", aliases:["Total Testosterone"], info:{high:"Values above range often reflect ongoing testosterone therapy/supplementation; less commonly an adrenal or testicular source. Usually read together with Free Testosterone and SHBG, since SHBG governs how much stays bound vs. bioavailable.",low:"Low total testosterone (with symptoms) is the basis for a hypogonadism work-up; LH and FSH help distinguish a testicular (primary) cause from a pituitary/hypothalamic (secondary) one.",related:["FT","SHBG","LH","FSH","E2"]} },
+  { id:"FT", name:"Free testosterone", unit:"pg/mL", group:"Hormones", aliases:["Free Testosterone"], info:{high:"The biologically active fraction; commonly runs high during testosterone therapy.",low:"Low free testosterone drives most of the symptoms associated with low T (energy, libido, etc.). Check alongside SHBG — a high SHBG can push free T low even when total T looks normal — and LH/FSH to localize the cause.",related:["TT","SHBG","LH","FSH"]} },
+  { id:"SHBG", name:"SHBG", unit:"nmol/L", group:"Hormones", aliases:["SHBG"], info:{high:"Sex hormone-binding globulin binds testosterone and estradiol, making them less bioavailable; high SHBG can lower free testosterone even when total testosterone is normal.",low:"Low SHBG raises the free fraction of hormones relative to total; commonly seen with obesity, insulin resistance, or hypothyroidism.",related:["TT","FT","E2"]} },
+  { id:"LH", name:"LH", unit:"mIU/mL", group:"Hormones", aliases:["LH"], info:{high:"Elevated LH with low testosterone points toward a testicular (primary) cause — the pituitary is appropriately signaling for more production but the testes aren't responding.",low:"Low LH alongside low testosterone points toward a pituitary/hypothalamic (secondary) cause rather than a testicular one.",related:["FSH","TT","FT"]} },
+  { id:"FSH", name:"FSH", unit:"mIU/mL", group:"Hormones", aliases:["FSH"], info:{high:"Elevated FSH can reflect reduced testicular reserve/function.",low:"Low FSH alongside low testosterone (like low LH) points toward a pituitary/hypothalamic origin rather than testicular.",related:["LH","TT"]} },
+  { id:"PRL", name:"Prolactin", unit:"ng/mL", group:"Hormones", aliases:["Prolactin"], info:{high:"Can rise with stress, certain medications, or (if significantly and persistently elevated) a pituitary adenoma; often assessed alongside LH/FSH/testosterone since it can suppress that axis.",related:["LH","FSH","TT"]} },
+  { id:"DHEAS", name:"DHEA-S", unit:"µg/dL", group:"Hormones", aliases:["DHEA-S"], info:{related:["CORT","TT"]} },
+  { id:"IGF1", name:"IGF-1", unit:"ng/mL", group:"Hormones", aliases:["IGF-1"], info:{high:"Reflects growth hormone activity over recent weeks.",low:"Can reflect reduced growth hormone secretion.",related:[]} },
+  { id:"CORT", name:"Cortisol (AM)", unit:"µg/dL", group:"Hormones", aliases:["Cortisol"], info:{high:"Can reflect acute stress, time of day (cortisol peaks in the morning), or less commonly an adrenal issue if persistently elevated.",low:"Can reflect adrenal insufficiency if persistent and unexplained, or simply a later-in-the-day draw given cortisol's daily rhythm.",related:["DHEAS"]} },
+  { id:"PREG", name:"Pregnenolone", unit:"ng/dL", group:"Hormones", aliases:["Pregnenolone"] },
+  { id:"PROG", name:"Progesterone", unit:"ng/mL", group:"Hormones", aliases:["Progesterone","Progesterone (Endocrine)"], info:{low:"In men, progesterone runs low by default and isn't a primary marker clinicians track; an isolated low value is rarely meaningful.",related:["E2","TT"]} },
+  { id:"TSH", name:"TSH", unit:"mIU/L", group:"Thyroid", aliases:["TSH"], info:{high:"Elevated TSH with a low/low-normal Free T4 suggests an underactive thyroid (hypothyroidism); TSH is the most sensitive first-line screen and moves inversely to thyroid hormone output.",low:"Low TSH suggests an overactive thyroid, or that thyroid replacement (if any) is dosed on the higher side; usually confirmed with Free T4/T3.",related:["FT4","TT4","FT3"]} },
+  { id:"FT4", name:"Free T4", unit:"ng/dL", group:"Thyroid", aliases:["Free T4"], info:{high:"Elevated Free T4 with low TSH suggests hyperthyroidism.",low:"Low Free T4 with high TSH suggests hypothyroidism.",related:["TSH","TT4","FT3"]} },
+  { id:"FT3", name:"Free T3", unit:"pg/mL", group:"Thyroid", aliases:["Free T3"] },
+  { id:"TT3", name:"Total T3", unit:"ng/dL", group:"Thyroid", aliases:["Total T3"] },
+  { id:"TT4", name:"Total T4", unit:"µg/dL", group:"Thyroid", aliases:["Total T4"], info:{high:"Read alongside TSH and Free T4 for thyroid status.",low:"Read alongside TSH and Free T4 for thyroid status.",related:["TSH","FT4"]} },
+  { id:"RT3", name:"Reverse T3", unit:"ng/dL", group:"Thyroid", aliases:["Reverse T3"] },
+  { id:"TGAB", name:"Thyroglobulin antibody", unit:"IU/mL", group:"Thyroid", aliases:["Thyroglobulin Ab"] },
+  { id:"TPOAB", name:"Thyroid peroxidase antibody", unit:"IU/mL", group:"Thyroid", aliases:["Thyroid Peroxidase Ab"] },
+  { id:"HCT", name:"Hematocrit", unit:"%", group:"CBC", aliases:["Hematocrit"], info:{high:"Can reflect dehydration at the time of the draw, or — notably — is a known, expected effect of testosterone therapy increasing red blood cell production. Persistently high levels are tracked to avoid excessive blood viscosity.",related:["RBC","HGB","TT"]} },
+  { id:"HGB", name:"Hemoglobin", unit:"g/dL", group:"CBC", aliases:["Hemoglobin"], info:{high:"Tends to move with hematocrit and RBC; can rise with testosterone therapy or dehydration.",related:["HCT","RBC"]} },
+  { id:"RBC", name:"RBC", unit:"M/µL", group:"CBC", aliases:["RBC"], info:{high:"Reflects red cell production; commonly rises somewhat during testosterone therapy, similar to hematocrit.",related:["HCT","HGB","TT"]} },
+  { id:"WBC", name:"WBC", unit:"K/µL", group:"CBC", aliases:["WBC"], info:{high:"Can reflect infection, inflammation, physical stress, or (rarely) a blood disorder if persistently elevated without an obvious cause.",low:"Can reflect viral illness, certain medications, or reduced bone marrow production if persistent.",related:[]} },
+  { id:"PLT", name:"Platelets", unit:"K/µL", group:"CBC", aliases:["Platelet Count"], info:{high:"Can reflect inflammation, iron deficiency, or a reactive response to stress/illness.",low:"Can increase bleeding/bruising risk if low enough; causes range from viral illness to medication effects to marrow production issues.",related:[]} },
+  { id:"MCV", name:"MCV", unit:"fL", group:"CBC", aliases:["MCV"], info:{high:"Larger-than-average red cells can reflect B12/folate deficiency, alcohol use, or thyroid issues.",low:"Smaller-than-average red cells often reflect iron deficiency.",related:["FERR","IRON","RDW"]} },
+  { id:"MCH", name:"MCH", unit:"pg", group:"CBC", aliases:["MCH"] },
+  { id:"MCHC", name:"MCHC", unit:"g/dL", group:"CBC", aliases:["MCHC"] },
+  { id:"RDW", name:"RDW", unit:"%", group:"CBC", aliases:["RDW"], info:{high:"Means red blood cells vary more in size than usual — often an early sign of a developing nutritional deficiency (iron, B12, or folate), sometimes appearing before other red cell indices change.",related:["MCV","FERR","IRON"]} },
+  { id:"MPV", name:"MPV", unit:"fL", group:"CBC", aliases:["MPV"] },
+  { id:"NEUT_ABS", name:"Neutrophils (absolute)", unit:"K/µL", group:"CBC", aliases:["Absolute Neutrophils"] },
+  { id:"NEUT_PCT", name:"Neutrophils %", unit:"%", group:"CBC", aliases:["Neutrophils %"] },
+  { id:"LYMPH_ABS", name:"Lymphocytes (absolute)", unit:"K/µL", group:"CBC", aliases:["Absolute Lymphocytes"] },
+  { id:"LYMPH_PCT", name:"Lymphocytes %", unit:"%", group:"CBC", aliases:["Lymphocytes %"] },
+  { id:"MONO_ABS", name:"Monocytes (absolute)", unit:"K/µL", group:"CBC", aliases:["Absolute Monocytes"] },
+  { id:"MONO_PCT", name:"Monocytes %", unit:"%", group:"CBC", aliases:["Monocytes %"] },
+  { id:"EOS_ABS", name:"Eosinophils (absolute)", unit:"K/µL", group:"CBC", aliases:["Absolute Eosinophils"] },
+  { id:"EOS_PCT", name:"Eosinophils %", unit:"%", group:"CBC", aliases:["Eosinophils %"] },
+  { id:"BASO_ABS", name:"Basophils (absolute)", unit:"K/µL", group:"CBC", aliases:["Absolute Basophils"] },
+  { id:"BASO_PCT", name:"Basophils %", unit:"%", group:"CBC", aliases:["Basophils %"] },
+  { id:"IG_PCT", name:"Immature granulocytes %", unit:"%", group:"CBC", aliases:["Immature Granulocytes"] },
+  { id:"IG_ABS", name:"Immature granulocytes (absolute)", unit:"K/µL", group:"CBC", aliases:["Immature Granulocytes Absolute"] },
+  { id:"FERR", name:"Ferritin", unit:"ng/mL", group:"Iron", aliases:["Ferritin"], info:{high:"Ferritin also rises with inflammation, so an elevated level can mean true iron overload or simply a nonspecific inflammatory response — Iron Saturation helps tell these apart.",low:"A sensitive marker of depleted iron stores; if low enough, it precedes iron-deficiency anemia. Usually reviewed with Iron, TIBC/Iron Saturation, and the red cell indices (MCV, RBC, Hemoglobin, RDW).",related:["IRON","TIBC","TSAT","MCV","RBC","RDW","HGB"]} },
+  { id:"IRON", name:"Iron", unit:"µg/dL", group:"Iron", aliases:["Iron"], info:{high:"Can reflect iron overload or recent supplementation; read with Ferritin and Iron Saturation.",low:"Can reflect depleted iron stores; read with Ferritin, TIBC, and Iron Saturation.",related:["FERR","TIBC","TSAT"]} },
+  { id:"TIBC", name:"TIBC", unit:"µg/dL", group:"Iron", aliases:["TIBC"], info:{high:"A high total iron-binding capacity typically reflects lower iron stores, since the body raises binding capacity when iron is scarce — often rises alongside low ferritin/iron.",low:"Can reflect higher iron stores, inflammation, or liver disease.",related:["FERR","IRON","TSAT"]} },
+  { id:"UIBC", name:"UIBC", unit:"µg/dL", group:"Iron", aliases:["UIBC"] },
+  { id:"TSAT", name:"Iron saturation", unit:"%", group:"Iron", aliases:["Iron Saturation"], info:{high:"Suggests iron overload when persistently elevated.",low:"Suggests iron deficiency.",related:["FERR","IRON","TIBC"]} },
+  { id:"VITD", name:"Vitamin D (25-OH)", unit:"ng/mL", group:"Vitamins", aliases:["Vitamin D"], info:{low:"Vitamin D deficiency is common and can affect bone health, immune function, and (per some evidence) energy/mood; typically addressed with supplementation and rechecked in a few months.",related:["CA"]} },
+  { id:"B12", name:"Vitamin B12", unit:"pg/mL", group:"Vitamins" },
+  { id:"FOL", name:"Folate", unit:"ng/mL", group:"Vitamins" },
+  { id:"MG", name:"Magnesium", unit:"mg/dL", group:"Vitamins", aliases:["Magnesium"] },
+  { id:"ZN", name:"Zinc", unit:"µg/dL", group:"Vitamins" },
+  { id:"GLU", name:"Fasting glucose", unit:"mg/dL", group:"Metabolic", aliases:["Glucose"], info:{high:"Elevated fasting glucose points toward insulin resistance, or prediabetes/diabetes if persistent or paired with an elevated A1c. A non-fasting draw can also transiently elevate this.",low:"Low glucose can simply reflect a fasting state, or medication effects; recurrent symptomatic lows warrant follow-up.",related:["A1C","TG"]} },
+  { id:"A1C", name:"HbA1c", unit:"%", group:"Metabolic", aliases:["Hemoglobin A1c"], info:{high:"Reflects average blood glucose over roughly the prior 2–3 months; sustained elevation is the basis for a prediabetes/diabetes diagnosis and should track with fasting glucose trends.",low:"Not typically significant on its own.",related:["GLU"]} },
+  { id:"INS", name:"Fasting insulin", unit:"µIU/mL", group:"Metabolic", aliases:["Insulin","Insulin, Fasting"] },
+  { id:"CA", name:"Calcium", unit:"mg/dL", group:"Metabolic", aliases:["Calcium"] },
+  { id:"CO2", name:"Carbon dioxide", unit:"mmol/L", group:"Metabolic", aliases:["Carbon Dioxide"], info:{high:"Reflects blood bicarbonate/buffering capacity; a mild, isolated elevation is often a benign lab or specimen-handling variant, but a persistent rise can reflect metabolic alkalosis or compensation for a respiratory issue.",low:"Can indicate metabolic acidosis.",related:["NA","K","CL"]} },
+  { id:"CL", name:"Chloride", unit:"mmol/L", group:"Metabolic", aliases:["Chloride"] },
+  { id:"K", name:"Potassium", unit:"mmol/L", group:"Metabolic", aliases:["Potassium"] },
+  { id:"NA", name:"Sodium", unit:"mmol/L", group:"Metabolic", aliases:["Sodium"] },
+  { id:"TC", name:"Total cholesterol", unit:"mg/dL", group:"Lipids", aliases:["Total Cholesterol"], info:{high:"Total cholesterol combines all the cholesterol carried by LDL, HDL, and other lipoproteins. On its own it's a blunt instrument — clinicians generally weight the individual components (LDL, HDL, triglycerides) more heavily than the total when judging cardiovascular risk.",low:"Low total cholesterol is uncommon and rarely a concern by itself; very low levels can occasionally reflect malnutrition, hyperthyroidism, or liver disease.",related:["LDL","HDL","TG","NONHDL"]} },
+  { id:"LDL", name:"LDL", unit:"mg/dL", group:"Lipids", aliases:["LDL Cholesterol"], info:{high:"LDL ('bad') cholesterol delivers cholesterol to tissues; persistently elevated levels are linked to arterial plaque build-up and long-term cardiovascular risk. It's usually read together with HDL and triglycerides rather than alone.",low:"Low LDL is generally favorable for cardiovascular risk.",related:["TC","HDL","TG","NONHDL"]} },
+  { id:"HDL", name:"HDL", unit:"mg/dL", group:"Lipids", aliases:["HDL Cholesterol"], info:{high:"HDL ('good') cholesterol helps clear cholesterol from tissues back to the liver; higher levels are generally considered protective.",low:"Low HDL is associated with higher cardiovascular risk and often travels with elevated triglycerides or insulin resistance.",related:["LDL","TG","TC"]} },
+  { id:"TG", name:"Triglycerides", unit:"mg/dL", group:"Lipids", aliases:["Triglycerides"], info:{high:"Elevated triglycerides often track with diet (sugar, alcohol, refined carbs), excess body fat, or insulin resistance, and at high levels raise cardiovascular and pancreatitis risk. Frequently rises alongside low HDL.",low:"Low triglycerides are rarely clinically significant.",related:["HDL","LDL","GLU","A1C"]} },
+  { id:"NONHDL", name:"Non-HDL cholesterol", unit:"mg/dL", group:"Lipids", aliases:["Non-HDL Cholesterol"], info:{high:"Captures LDL plus other atherogenic lipoproteins in one number; many clinicians treat it as a slightly better cardiovascular risk marker than LDL alone, especially when triglycerides are elevated.",related:["LDL","TG","TC"]} },
+  { id:"VLDL", name:"VLDL cholesterol", unit:"mg/dL", group:"Lipids", aliases:["VLDL Cholesterol"] },
+  { id:"CHOL_HDL_RATIO", name:"Cholesterol/HDL ratio", unit:"", group:"Lipids", aliases:["Cholesterol/HDL Ratio"] },
+  { id:"APOB", name:"ApoB", unit:"mg/dL", group:"Lipids" },
+  { id:"LPA", name:"Lp(a)", unit:"nmol/L", group:"Lipids" },
+  { id:"ALT", name:"ALT", unit:"U/L", group:"Liver & kidney", aliases:["ALT"], info:{high:"ALT is concentrated in the liver, so elevation suggests hepatocyte stress; commonly related to alcohol, fatty liver, medications/supplements, or a recent hard workout. Usually read together with AST.",related:["AST","ALP","BILI_T"]} },
+  { id:"AST", name:"AST", unit:"U/L", group:"Liver & kidney", aliases:["AST"], info:{high:"AST is found in both liver and muscle, so elevation can reflect liver stress or simply recent intense exercise/muscle strain; the AST:ALT pattern helps narrow the likely cause.",related:["ALT","ALP"]} },
+  { id:"GGT", name:"GGT", unit:"U/L", group:"Liver & kidney", aliases:["GGT"] },
+  { id:"ALP", name:"Alkaline phosphatase", unit:"U/L", group:"Liver & kidney", aliases:["Alkaline Phosphatase"], info:{high:"Can originate from liver or bone turnover; usually interpreted with GGT (liver-specific) or bone-related context.",low:"Less commonly significant; occasionally seen with certain nutrient deficiencies (e.g., zinc, B6) or as an individual variant.",related:["ALT","AST","BILI_T"]} },
+  { id:"ALB", name:"Albumin", unit:"g/dL", group:"Liver & kidney", aliases:["Albumin"], info:{high:"Usually reflects dehydration/hemoconcentration at the time of the draw rather than true overproduction.",low:"Can reflect liver disease, inflammation, or malnutrition — read with total protein and globulin.",related:["TPROT","GLOB","AG_RATIO"]} },
+  { id:"GLOB", name:"Globulin", unit:"g/dL", group:"Liver & kidney", aliases:["Globulin"] },
+  { id:"AG_RATIO", name:"Albumin/Globulin ratio", unit:"", group:"Liver & kidney", aliases:["Albumin/Globulin Ratio"], info:{high:"A high A/G ratio (relatively less globulin) is less commonly a clinical concern than a low ratio.",low:"A low A/G ratio (relatively more globulin) can reflect chronic inflammation, infection, or a plasma cell disorder if persistent.",related:["ALB","GLOB","TPROT"]} },
+  { id:"TPROT", name:"Total protein", unit:"g/dL", group:"Liver & kidney", aliases:["Total Protein"] },
+  { id:"BILI_T", name:"Bilirubin (total)", unit:"mg/dL", group:"Liver & kidney", aliases:["Bilirubin Total"] },
+  { id:"BILI_D", name:"Bilirubin (direct)", unit:"mg/dL", group:"Liver & kidney", aliases:["Bilirubin Direct"] },
+  { id:"CREA", name:"Creatinine", unit:"mg/dL", group:"Liver & kidney", aliases:["Creatinine"], info:{high:"A muscle-metabolism byproduct cleared by the kidneys; elevation can reflect reduced kidney filtration, dehydration at the time of the draw, or simply higher muscle mass — read together with eGFR and BUN.",low:"Usually reflects lower muscle mass and is rarely concerning alone.",related:["EGFR","BUN","BUN_CREA_RATIO"]} },
+  { id:"EGFR", name:"eGFR", unit:"mL/min", group:"Liver & kidney", aliases:["eGFR"], info:{low:"An estimate of kidney filtration rate; a low or declining eGFR over time suggests reduced kidney function and is read alongside creatinine and BUN.",related:["CREA","BUN"]} },
+  { id:"BUN", name:"BUN", unit:"mg/dL", group:"Liver & kidney", aliases:["BUN"], info:{high:"Can rise with dehydration, high protein intake, or reduced kidney clearance.",low:"Can reflect low protein intake or liver disease.",related:["CREA","EGFR"]} },
+  { id:"BUN_CREA_RATIO", name:"BUN/Creatinine ratio", unit:"", group:"Liver & kidney", aliases:["BUN/Creatinine Ratio"] },
+  { id:"CRP", name:"hs-CRP", unit:"mg/L", group:"Inflammation", aliases:["hs-CRP"], info:{high:"A general inflammation marker; can be elevated by infection, injury, or the chronic low-grade inflammation associated with cardiovascular risk.",related:[]} },
+  { id:"HCY", name:"Homocysteine", unit:"µmol/L", group:"Inflammation", aliases:["Homocysteine"], info:{high:"Elevated homocysteine is associated with cardiovascular risk and often relates to B12/folate status.",related:["VITD"]} },
+  { id:"PSA", name:"PSA", unit:"ng/mL", group:"Other", aliases:["PSA"], info:{high:"Elevated PSA can reflect prostate enlargement (BPH), inflammation/infection, or recent ejaculation, and less commonly prostate cancer. The trend over time and free/total PSA ratio are more informative than any single value.",related:[]} },
+  { id:"BP", name:"Blood pressure (systolic)", unit:"mmHg", group:"Other" },
+  { id:"WT", name:"Body weight", unit:"lb", group:"Other" },
+  { id:"OTHER", name:"Other…", unit:"", group:"Other" },
 ];
+const LAB_GROUPS = [...new Set(LAB_MARKERS.map(m => m.group))];
+const LAB_BY_ID = id => LAB_MARKERS.find(m => m.id === id);
+const LAB_DEFAULT_INFO = "This value fell outside the standard reference range. A single out-of-range reading is often less informative than the trend over multiple draws — worth mentioning to your provider, especially if it repeats.";
+/* compound/name (case-insensitive) -> marker ids to surface on that program's screen; first id is the "+ Lab result" preset */
+const PROGRAM_LAB_MARKERS = [
+  [/testosterone|estradiol|hcg|enclomiphene/i, ['E2', 'TT', 'FT', 'SHBG', 'LH', 'FSH', 'PRL', 'HCT', 'HGB', 'PSA']],
+  [/retatrutide/i, ['GLU', 'A1C', 'INS', 'TC', 'LDL', 'HDL', 'TG', 'WT']],
+  [/ghk-?cu|bpc-?157|tb-?500/i, ['CRP']],
+  [/ipamorelin|cjc-?1295|tesamorelin|mk-?677|sermorelin|hexarelin/i, ['IGF1', 'GLU', 'A1C']],
+];
+function programLabMarkers(p) {
+  const hay = `${p.compound || ''} ${p.name || ''}`;
+  for (const [re, markers] of PROGRAM_LAB_MARKERS) if (re.test(hay)) return markers;
+  return null;
+}
 const labs = () => Object.values(store.data.labs || {}).sort((a, b) => a.at.localeCompare(b.at));
 function labForm(preset) {
   openModal(`<h2>Log a lab result</h2><form class="form" id="labForm">
     <div class="grid2">
-      <div class="field"><label for="lb-marker">Marker</label><select id="lb-marker" name="marker">${[...new Set(LAB_MARKERS.map(m => m[3]))].map(g => `<optgroup label="${g}">${LAB_MARKERS.filter(m => m[3] === g).map(([k, name, unit]) => `<option value="${k}" ${k === (preset || 'E2') ? 'selected' : ''}>${name}${unit ? ' · ' + unit : ''}</option>`).join('')}</optgroup>`).join('')}</select></div>
+      <div class="field"><label for="lb-marker">Marker</label><select id="lb-marker" name="marker">${LAB_GROUPS.map(g => `<optgroup label="${g}">${LAB_MARKERS.filter(m => m.group === g).map(m => `<option value="${m.id}" ${m.id === (preset || 'E2') ? 'selected' : ''}>${esc(m.name)}${m.unit ? ' · ' + esc(m.unit) : ''}</option>`).join('')}</optgroup>`).join('')}</select></div>
       <div class="field"><label for="lb-date">Date</label><input id="lb-date" name="at" type="date" value="${ISO(new Date())}" required></div>
     </div>
     <div class="grid2" id="lb-other" hidden>
@@ -660,36 +755,55 @@ function labForm(preset) {
       <div class="field"><label for="lb-value">Value <span class="faint" id="lb-unitlabel"></span></label><input id="lb-value" name="value" type="text" inputmode="decimal" required></div>
       <div class="field"><label for="lb-note">Note</label><input id="lb-note" name="note" placeholder="Lab, time of day, days since dose…"></div>
     </div>
+    <div class="grid2">
+      <div class="field"><label for="lb-reflow">Reference low <span class="faint">(optional)</span></label><input id="lb-reflow" name="refLow" type="text" inputmode="decimal"></div>
+      <div class="field"><label for="lb-refhigh">Reference high <span class="faint">(optional)</span></label><input id="lb-refhigh" name="refHigh" type="text" inputmode="decimal"></div>
+    </div>
     <div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="submit" class="btn primary">Save result</button></div></form>`);
   const form = $('#labForm');
-  const sync = () => { const m = LAB_MARKERS.find(x => x[0] === form.marker.value); $('#lb-other').hidden = form.marker.value !== 'OTHER'; $('#lb-unitlabel').textContent = m && m[2] ? '(' + m[2] + ')' : ''; };
+  const sync = () => { const m = LAB_BY_ID(form.marker.value); $('#lb-other').hidden = form.marker.value !== 'OTHER'; $('#lb-unitlabel').textContent = m && m.unit ? '(' + m.unit + ')' : ''; };
   form.marker.addEventListener('change', sync); sync();
   form.addEventListener('submit', async e => {
     e.preventDefault(); const fd = new FormData(form); const v = num(fd.get('value')); if (v == null) return;
-    const m = LAB_MARKERS.find(x => x[0] === fd.get('marker'));
+    const m = LAB_BY_ID(fd.get('marker'));
     const other = fd.get('marker') === 'OTHER';
-    const obj = { marker: other ? (fd.get('name').trim() || 'Other') : m[0], name: other ? (fd.get('name').trim() || 'Other') : m[1], unit: other ? fd.get('unit').trim() : m[2], value: v, at: fd.get('at'), note: fd.get('note').trim(), createdAt: new Date().toISOString() };
+    const unit = other ? fd.get('unit').trim() : m.unit;
+    const refLow = num(fd.get('refLow')), refHigh = num(fd.get('refHigh'));
+    const obj = {
+      marker: other ? (fd.get('name').trim() || 'Other') : m.id,
+      name: other ? (fd.get('name').trim() || 'Other') : m.name,
+      unit, value: v, at: fd.get('at'), note: fd.get('note').trim(), createdAt: new Date().toISOString(),
+    };
+    if (refLow != null) obj.refLow = refLow;
+    if (refHigh != null) obj.refHigh = refHigh;
+    if (refLow != null && refHigh != null) {
+      obj.refText = `${n(refLow, 1)}-${n(refHigh, 1)}${unit ? ' ' + unit : ''}`;
+      obj.flag = v < refLow ? 'Low' : v > refHigh ? 'High' : 'Normal';
+    }
     closeModal(); await store.put('labs', uid(), obj); toast('Lab result saved');
   });
 }
-function labsChart(key, entries) {
+function labsChart(key, entries, band) {
   const id = 'lab-' + key.replace(/[^\w-]/g, '_');
   const W = 760, H = 170, L = 46, R = 14, T = 16, B = 28;
-  const vals = entries.map(e => e.value); const lo = Math.min(...vals), hi = Math.max(...vals);
+  const vals = entries.map(e => e.value);
+  if (band) { vals.push(band.refLow, band.refHigh); }
+  const lo = Math.min(...vals), hi = Math.max(...vals);
   const pad = Math.max((hi - lo) * 0.25, hi * 0.1 || 1); const yMin = Math.max(0, lo - pad), yMax = hi + pad;
   const t0 = new Date(entries[0].at + 'T12:00:00').getTime(), t1 = new Date(entries[entries.length - 1].at + 'T12:00:00').getTime();
   const span = Math.max(t1 - t0, 14 * 86400e3); const from = t0 - span * 0.05, to = t0 + span * 1.05;
   const x = t => L + (t - from) / (to - from) * (W - L - R);
   const y = v => T + (1 - (v - yMin) / (yMax - yMin)) * (H - T - B);
-  const pts = entries.map(e => ({ t: new Date(e.at + 'T12:00:00').getTime(), v: e.value, note: e.note }));
+  const pts = entries.map(e => ({ t: new Date(e.at + 'T12:00:00').getTime(), v: e.value, note: e.note, flag: e.flag }));
   const path = pts.map((q, i) => `${i ? 'L' : 'M'}${x(q.t).toFixed(1)},${y(q.v).toFixed(1)}`).join(' ');
   const step = (yMax - yMin) / 3; const nice = Math.pow(10, Math.floor(Math.log10(step))) * (step / Math.pow(10, Math.floor(Math.log10(step))) < 2 ? 1 : step / Math.pow(10, Math.floor(Math.log10(step))) < 5 ? 2 : 5);
   let grid = ''; for (let v = Math.ceil(yMin / nice) * nice; v <= yMax; v += nice) grid += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--divider)"/><text x="${L - 6}" y="${y(v) + 3}" font-size="9" text-anchor="end" fill="var(--muted)" font-family="var(--font-mono)">${n(v, 1)}</text>`;
-  const dots = pts.map(q => `<circle cx="${x(q.t)}" cy="${y(q.v)}" r="6" fill="var(--surface)"/><circle cx="${x(q.t)}" cy="${y(q.v)}" r="4" fill="var(--good)"/>`).join('');
+  const bandRect = band ? `<rect x="${L}" y="${y(band.refHigh)}" width="${W - L - R}" height="${Math.max(0, y(band.refLow) - y(band.refHigh))}" fill="var(--good-soft)"/>` : '';
+  const dots = pts.map(q => { const bad = q.flag === 'High' || q.flag === 'Low'; return `<circle cx="${x(q.t)}" cy="${y(q.v)}" r="6" fill="var(--surface)"/><circle cx="${x(q.t)}" cy="${y(q.v)}" r="4" fill="${bad ? 'var(--bad)' : 'var(--good)'}"/>`; }).join('');
   const xl = pts.map(q => `<text x="${x(q.t)}" y="${H - 9}" font-size="9" text-anchor="middle" fill="var(--muted)" font-family="var(--font-body)">${fmtDate(new Date(q.t))}</text>`).filter((_, i, a) => a.length <= 8 || i % Math.ceil(a.length / 8) === 0).join('');
   const last = pts[pts.length - 1];
   chartData[id] = { pts, L, R, W, x0: from, x1: to, fmt: v => `${n(v, 1)} ${entries[0].unit || ''}`, y, x, snap: true };
-  return `<div class="chart" data-chart="${id}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(entries[0].name)} over time">${grid}
+  return `<div class="chart" data-chart="${id}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(entries[0].name)} over time">${bandRect}${grid}
     <path d="${path}" fill="none" stroke="var(--good)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}
     <text x="${x(last.t)}" y="${y(last.v) - 10}" font-size="10" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)">${n(last.v, 1)}</text>
     ${xl}
@@ -698,21 +812,64 @@ function labsChart(key, entries) {
     <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" class="hit"/>
   </svg><div class="tip" hidden></div></div>`;
 }
+function flagChip(flag) {
+  if (flag === 'High') return `<span class="chip bad">High</span>`;
+  if (flag === 'Low') return `<span class="chip bad">Low</span>`;
+  if (flag === 'Normal') return `<span class="chip good">Normal</span>`;
+  return '';
+}
 function labsSection(opts = {}) {
   const all = labs(); const groups = {};
-  for (const e of all) { if (opts.only && !opts.only.includes(e.marker)) continue; (groups[e.marker] = groups[e.marker] || []).push(e); }
+  for (const e of all) {
+    if (opts.only && !opts.only.includes(e.marker)) continue;
+    if (opts.cats) { const cat = LAB_BY_ID(e.marker); const grp = cat ? cat.group : 'Other'; if (!opts.cats.includes(grp)) continue; }
+    (groups[e.marker] = groups[e.marker] || []).push(e);
+  }
   const keys = Object.keys(groups);
-  let h = `<div class="section-head"><h2>${opts.title || 'Labs'}</h2><div class="row"><button class="btn sm primary" data-action="lab" ${opts.preset ? `data-preset="${opts.preset}"` : ''}>+ Lab result</button></div></div>`;
+  let h = `<div class="section-head"><h2>${opts.title || 'Labs'}</h2>${opts.hideAdd ? '' : `<div class="row"><button class="btn sm primary" data-action="lab" ${opts.preset ? `data-preset="${opts.preset}"` : ''}>+ Lab result</button></div>`}</div>`;
   if (!keys.length) { h += `<div class="empty small">No lab results yet. Log estradiol, testosterone or anything else you get tested and it charts here.</div>`; return `<section class="sec">${h}</section>`; }
   h += `<div class="stack">`;
   for (const k of keys) {
     const es = groups[k]; const last = es[es.length - 1]; const prev = es.length > 1 ? es[es.length - 2] : null;
     const delta = prev ? last.value - prev.value : null;
-    h += `<div class="card"><div class="row" style="margin-bottom:6px"><h3 style="font-size:15px">${esc(last.name)}</h3><span class="muted small">${esc(last.unit)}</span><span class="spacer"></span><span class="num" style="font-size:20px;font-weight:600">${n(last.value, 1)}</span><span class="small muted">${fmtDate(P(last.at))}${delta != null ? ` · ${delta >= 0 ? '+' : ''}${n(delta, 1)} vs prior` : ''}</span></div>
-      ${es.length > 1 ? labsChart(k, es) : `<div class="small muted">One result so far. A second one draws the line.</div>`}
-      <details style="margin-top:8px"><summary>All results (${es.length})</summary><div class="table-wrap" style="margin-top:6px"><table><thead><tr><th>Date</th><th class="num">Value</th><th>Note</th><th></th></tr></thead><tbody>${es.slice().reverse().map(e => `<tr><td>${fmtDate(P(e.at), true)}</td><td class="num">${n(e.value, 1)} ${esc(e.unit)}</td><td class="muted" style="white-space:normal">${esc(e.note || '')}</td><td><button class="btn sm ghost danger" data-action="del-lab" data-id="${e.id}" aria-label="Delete">✕</button></td></tr>`).join('')}</tbody></table></div></details></div>`;
+    const cat = LAB_BY_ID(k);
+    const band = [...es].reverse().find(e => e.refLow != null && e.refHigh != null);
+    h += `<div class="card"${opts.only ? '' : ` id="lab-card-${k.replace(/[^\w-]/g, '_')}"`}><div class="row" style="margin-bottom:6px"><h3 style="font-size:15px">${esc(last.name)}</h3><span class="muted small">${esc(last.unit)}</span><span class="spacer"></span>${flagChip(last.flag)}<span class="num" style="font-size:20px;font-weight:600">${n(last.value, 1)}</span><span class="small muted">${fmtDate(P(last.at))}${delta != null ? ` · ${delta >= 0 ? '+' : ''}${n(delta, 1)} vs prior` : ''}${last.refText ? ` · ref ${esc(last.refText)}` : ''}</span></div>
+      ${es.length > 1 ? labsChart(k, es, band ? { refLow: band.refLow, refHigh: band.refHigh } : null) : `<div class="small muted">One result so far. A second one draws the line.</div>`}
+      ${cat && cat.info ? `<details style="margin-top:8px"><summary>What it means</summary><div class="note-box" style="margin-top:6px">
+          ${last.flag === 'High' ? (cat.info.high ? `<p>${esc(cat.info.high)}</p>` : `<p>${esc(LAB_DEFAULT_INFO)}</p>`)
+          : last.flag === 'Low' ? (cat.info.low ? `<p>${esc(cat.info.low)}</p>` : `<p>${esc(LAB_DEFAULT_INFO)}</p>`)
+          : `${cat.info.high ? `<p>${esc(cat.info.high)}</p>` : ''}${cat.info.low ? `<p>${esc(cat.info.low)}</p>` : ''}`}
+          ${cat.info.related && cat.info.related.length ? `<div class="small muted" style="margin-top:6px">Usually reviewed with: ${cat.info.related.map(rid => { const rc = LAB_BY_ID(rid); return rc ? `<button type="button" class="chip plain" style="cursor:pointer;border:0" data-action="jump-marker" data-id="${rid}" data-name="${esc(rc.name)}">${esc(rc.name)}</button>` : ''; }).join(' ')}</div>` : ''}
+        </div></details>` : ''}
+      <details style="margin-top:8px"><summary>All results (${es.length})</summary><div class="table-wrap" style="margin-top:6px"><table><thead><tr><th>Date</th><th class="num">Value</th><th>Range</th><th>Flag</th><th>Source</th><th>Note</th><th></th></tr></thead><tbody>${es.slice().reverse().map(e => `<tr><td>${fmtDate(P(e.at), true)}</td><td class="num">${n(e.value, 1)} ${esc(e.unit)}</td><td class="muted small">${esc(e.refText || (e.refLow != null && e.refHigh != null ? `${n(e.refLow, 1)}-${n(e.refHigh, 1)}` : '—'))}</td><td>${flagChip(e.flag) || '<span class="muted small">—</span>'}</td><td class="muted small">${esc(e.source || '—')}</td><td class="muted" style="white-space:normal">${esc(e.note || '')}</td><td><button class="btn sm ghost danger" data-action="del-lab" data-id="${e.id}" aria-label="Delete">✕</button></td></tr>`).join('')}</tbody></table></div></details></div>`;
   }
   return `<section class="sec">${h}</div></section>`;
+}
+let labsCat = 'All';
+try { labsCat = localStorage.getItem('pt-labs-cat') || 'All'; } catch {}
+function saveLabsCat() { try { localStorage.setItem('pt-labs-cat', labsCat); } catch {} }
+function labsSummary() {
+  const all = labs(); if (!all.length) return null;
+  const lastDate = all[all.length - 1].at;
+  const inDraw = all.filter(e => e.at === lastDate);
+  const flagged = inDraw.filter(e => e.flag === 'High' || e.flag === 'Low').length;
+  const markers = new Set(all.map(e => e.marker)).size;
+  return { lastDate, count: inDraw.length, flagged, markers };
+}
+function labsView() {
+  const s = labsSummary();
+  const strip = s ? `<div class="strip">
+      <div class="tile"><div class="k">Last draw</div><div class="v" style="font-size:18px">${fmtDate(P(s.lastDate), true)}</div></div>
+      <div class="tile"><div class="k">Results in that draw</div><div class="v num">${s.count}</div></div>
+      <div class="tile${s.flagged ? ' bad' : ''}"><div class="k">Flagged</div><div class="v num">${s.flagged}</div></div>
+      <div class="tile"><div class="k">Markers tracked</div><div class="v num">${s.markers}</div></div>
+    </div>` : '';
+  const cats = ['All', ...LAB_GROUPS];
+  const filterRow = `<div class="row" style="margin-bottom:16px;flex-wrap:wrap;gap:6px">${cats.map(c => `<button class="gbtn" style="border-radius:8px;border-left:1px solid var(--border)" data-action="labscat" data-cat="${esc(c)}" aria-selected="${labsCat === c}">${esc(c)}</button>`).join('')}</div>`;
+  const head = `<section class="sec"><div class="section-head"><h2>Labs</h2><div class="row"><button class="btn sm primary" data-action="lab">+ Lab result</button></div></div>${strip}${filterRow}</section>`;
+  const activeCats = labsCat === 'All' ? null : [labsCat];
+  return head + labsSection({ cats: activeCats, title: 'Results by marker', hideAdd: true });
 }
 
 /* ---------- chart hover ---------- */
@@ -756,7 +913,7 @@ function saveGraphState() { try { localStorage.setItem('pt-graph', JSON.stringif
 function availableSeries() {
   const out = [];
   const labKeys = [...new Set(labs().map(e => e.marker))];
-  for (const k of labKeys) { const e = labs().find(x => x.marker === k); out.push({ key: 'lab:' + k, group: 'Labs', name: e.name, unit: e.unit || '' }); }
+  for (const k of labKeys) { const e = labs().find(x => x.marker === k); const cat = LAB_BY_ID(k); out.push({ key: 'lab:' + k, group: 'Labs · ' + (cat ? cat.group : 'Other'), name: e.name, unit: e.unit || '' }); }
   for (const p of programs()) {
     if (logs().some(l => l.programId === p.id)) { out.push({ key: 'dose:' + p.id, group: 'Doses', name: `${p.name} · per dose`, unit: 'mg' }); out.push({ key: 'wk:' + p.id, group: 'Doses', name: `${p.name} · per week`, unit: 'mg/wk' }); }
     if (pkParams(p) && (logs().some(l => l.programId === p.id) || p.status === 'active')) out.push({ key: 'lvl:' + p.id, group: 'Level in system', name: `${p.name} · in system`, unit: 'mg' });
@@ -1055,6 +1212,7 @@ function renderTabs() {
     const missed = p.status === 'active' && missedDates(p).length > 0;
     h += `<button class="tab${p.status === 'done' ? ' done-tab' : ''}" role="tab" data-view="program" data-id="${p.id}">${esc(p.name)}${pending ? '<span class="mark due" title="Due today"></span>' : missed ? '<span class="mark missed" title="Missed doses"></span>' : ''}</button>`;
   }
+  h += `<button class="tab" role="tab" data-view="labs">Labs</button>`;
   h += `<button class="tab" role="tab" data-view="plan">Logs</button>`;
   $('#tabs').innerHTML = h; syncTabs();
 }
@@ -1062,7 +1220,7 @@ function render() {
   showView(currentView);
   $('#todayLabel').textContent = new Intl.DateTimeFormat('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' }).format(new Date());
   if (!store.ready) { $('#today').innerHTML = '<div class="empty">Loading your programs…</div>'; return; }
-  renderTabs(); renderToday(); renderPlanSummary(); renderProgramDetail(); renderVials(); renderLog(); $('#labs').innerHTML = labsSection({}); renderGraphs(); renderOrphans();
+  renderTabs(); renderToday(); renderPlanSummary(); renderProgramDetail(); renderVials(); renderLog(); $('#labs').innerHTML = labsView(); renderGraphs(); renderOrphans();
 }
 
 function statusChip(p) {
@@ -1310,7 +1468,7 @@ function renderProgramDetail() {
       </article>
     </div>
     ${levelSection(p)}
-    ${/testosterone|estradiol|hcg|enclomiphene/i.test(p.compound + ' ' + p.name) ? labsSection({ title: 'Labs', preset: 'E2' }) : ''}
+    ${(() => { const pm = programLabMarkers(p); return pm ? labsSection({ title: 'Labs', preset: pm[0], only: pm }) : ''; })()}
     <section class="sec" id="program-doses"><div class="section-head"><h2>Doses</h2><span class="hint">Complete after you inject · Skip to push the schedule</span></div>${doseScheduleTable(p, c, { bare: true })}</section>`;
   wireVialDrag($('#program .vial-list'));
   scrollStrips($('#program'));
@@ -1859,6 +2017,16 @@ document.addEventListener('click', async e => {
     case 'calc': calcModal(id); break;
     case 'lab': labForm(b.dataset.preset); break;
     case 'del-lab': confirmBox('Delete this lab result?', () => store.del('labs', id)); break;
+    case 'labscat': labsCat = b.dataset.cat; saveLabsCat(); $('#labs').innerHTML = labsView(); break;
+    case 'jump-marker': {
+      const card = document.getElementById('lab-card-' + b.dataset.id);
+      if (currentView !== 'labs') { showView('labs'); }
+      if (labsCat !== 'All' && !card) { labsCat = 'All'; saveLabsCat(); $('#labs').innerHTML = labsView(); }
+      const target = document.getElementById('lab-card-' + b.dataset.id);
+      if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      else toast(`No ${b.dataset.name || b.dataset.id} results logged yet`);
+      break;
+    }
     case 'add-program': programForm({}); break;
     case 'edit-program': programForm(pm[id] || {}); break;
     case 'activate': await store.put('programs', id, { ...pm[id], status:'active', startDate: pm[id].startDate || ISO(new Date()) }); toast('Activated'); break;
