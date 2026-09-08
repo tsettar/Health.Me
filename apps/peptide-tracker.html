@@ -1,0 +1,1889 @@
+<meta charset="utf-8">
+<title>Peptide Protocol Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#F3F5F4; --surface:#FFFFFF; --surface-2:#E9EEEC; --border:#D3DBD8; --divider:#E3E9E7;
+    --ink:#16201D; --muted:#5C6966; --faint:#8C9895;
+    --accent:#3D4FC4; --accent-ink:#FFFFFF; --accent-soft:#E4E7FA; --accent-line:#B7BEEF;
+    --good:#1F7A4D; --good-soft:#DDF1E6; --warn:#9A6400; --warn-soft:#FFF3CF; --today-soft:#FFF8E1; --bad:#BE3B3B; --bad-soft:#F9E0E0;
+    --shadow:0 1px 2px rgba(22,32,29,.06), 0 8px 24px rgba(22,32,29,.06);
+    --font-display:'Manrope', 'Segoe UI', system-ui, sans-serif;
+    --font-body:'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+    --font-mono:'IBM Plex Mono', ui-monospace, Consolas, monospace;
+    --r-sm:6px; --r-md:10px; --r-lg:14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#0F1513; --surface:#171E1C; --surface-2:#1F2826; --border:#2C3735; --divider:#243030;
+      --ink:#E6ECE9; --muted:#A2AEAA; --faint:#6F7B78;
+      --accent:#8E9CFF; --accent-ink:#0F1513; --accent-soft:#252B4D; --accent-line:#3F4A8F;
+      --good:#6CCB95; --good-soft:#173325; --warn:#F0B35A; --warn-soft:#3A2F14; --today-soft:#2E2812; --bad:#F08080; --bad-soft:#3D1A1A;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0F1513; --surface:#171E1C; --surface-2:#1F2826; --border:#2C3735; --divider:#243030;
+    --ink:#E6ECE9; --muted:#A2AEAA; --faint:#6F7B78;
+    --accent:#8E9CFF; --accent-ink:#0F1513; --accent-soft:#252B4D; --accent-line:#3F4A8F;
+    --good:#6CCB95; --good-soft:#173325; --warn:#F0B35A; --warn-soft:#3A2F14; --today-soft:#2E2812; --bad:#F08080; --bad-soft:#3D1A1A;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 var(--font-body); -webkit-text-size-adjust:100%; }
+  button, input, select, textarea { font:inherit; color:inherit; }
+  h1,h2,h3,h4,p { margin:0; }
+  h1,h2,h3 { font-family:var(--font-display); text-wrap:balance; }
+  a { color:var(--accent); }
+  .num { font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+  .app { max-width:none; margin:0; padding:16px 24px 64px; }
+  .layout { display:grid; grid-template-columns:minmax(0,1fr) clamp(320px, 26vw, 420px); gap:24px; align-items:start; }
+  .side { position:sticky; top:52px; max-height:calc(100vh - 64px); overflow:auto; padding-top:18px; }
+  .side .card { padding:12px; }
+  .side .prog-meta { grid-template-columns:1fr 1fr; gap:6px 10px; margin:8px 0; font-size:12px; }
+  .side h3 { font-size:14px; }
+  .side .section-head h3 { font-size:15px; font-weight:700; }
+  .side .empty { padding:16px 12px; }
+  .side.fit { position:static; padding-top:0; height:0; min-height:100%; max-height:none; overflow-y:auto; scrollbar-width:thin; }
+  .side.fit .section-head { position:sticky; top:0; background:var(--bg); z-index:1; padding-bottom:6px; margin-bottom:4px; }
+  .vial-mini { padding:8px 10px; background:var(--surface-2); border-color:var(--divider); }
+  .vial-mini.dragging { background:var(--accent-soft); }
+  .vial-mini[draggable="true"] { cursor:grab; }
+  .vial-mini.dragging { opacity:.45; }
+  .vial-mini .grip { color:var(--faint); font-size:12px; letter-spacing:-2px; cursor:grab; user-select:none; }
+
+  .vial-mini .bar { height:6px; }
+  .vial-mini .bar.low > i { background:var(--warn); }
+  .vial-mini a { color:var(--muted); }
+  @media (max-width:900px) { .side.fit { height:auto; min-height:0; max-height:none; } }
+  @media (max-width:900px) { .layout { grid-template-columns:1fr; } .side { position:static; max-height:none; overflow:visible; } }
+  @media (max-width:640px) { .app { padding:12px 12px 64px; } }
+
+  /* top bar */
+  .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 0 14px; }
+  .brand { display:flex; align-items:center; gap:12px; }
+  .brand-mark { width:36px; height:36px; border-radius:10px; background:var(--accent); display:grid; place-items:center; color:var(--accent-ink); }
+  .brand h1 { font-size:18px; font-weight:800; letter-spacing:-.01em; }
+  .brand .sub { font-size:12px; color:var(--muted); }
+  .topbar-right { display:flex; align-items:center; gap:8px; }
+  .storage { font-size:12px; color:var(--muted); display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border:1px solid var(--border); border-radius:999px; background:var(--surface); }
+  .storage i { width:8px; height:8px; border-radius:50%; background:var(--faint); display:inline-block; }
+  .storage.cloud i { background:var(--good); }
+  .storage.local i { background:var(--warn); }
+
+  /* jump nav */
+  .jump { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:8px; padding:8px 0; margin-bottom:8px; background:var(--bg); border-bottom:1px solid var(--border); }
+  .tabs { display:flex; flex-wrap:wrap; gap:4px; align-items:center; min-width:0; }
+  .tab .mark { display:inline-block; width:8px; height:8px; border-radius:50%; margin-left:6px; vertical-align:middle; }
+  .tab .mark.due { background:var(--warn); } .tab .mark.missed { background:var(--bad); }
+  .tab[aria-selected="true"] .mark { background:var(--accent-ink); }
+  .tab { appearance:none; border:0; background:none; color:var(--muted); font-weight:700; font-size:15px; padding:8px 14px; border-radius:999px; white-space:nowrap; cursor:pointer; }
+  .tab:hover { color:var(--ink); background:var(--surface-2); }
+  .tab[aria-selected="true"] { color:var(--accent-ink); background:var(--accent); }
+  .tab[aria-selected="true"] .badge { background:var(--accent-ink); color:var(--accent); }
+  .view { display:none; } .view.active { display:block; }
+  .jump .badge { display:inline-block; min-width:18px; padding:0 5px; margin-left:6px; border-radius:999px; background:var(--accent); color:var(--accent-ink); font-size:11px; text-align:center; line-height:18px; }
+  .tab:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .sec { scroll-margin-top:56px; padding-top:18px; margin-bottom:12px; }
+  .sec > .section-head h2 { font-size:20px; font-weight:800; letter-spacing:-.01em; }
+  .now-line { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-top:10px; padding:12px 14px; background:var(--accent-soft); border-radius:var(--r-md); }
+  .now-line .big { font-family:var(--font-mono); font-size:30px; font-weight:600; line-height:1; }
+  .now-line .big small { font-size:14px; color:var(--muted); margin-left:3px; font-weight:500; }
+  .now-line .gauge { margin:0; flex:1 1 260px; max-width:440px; }
+  .now-line .days { padding-bottom:2px; }
+  .mini { width:150px; height:18px; display:block; }
+  .grid-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:10px; }
+  .compact { padding:12px 14px; }
+  .compact.done { border-color:var(--good); }
+  .compact .title { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .compact .title h3 { font-size:15px; font-weight:800; }
+  .compact .title h3 a { color:inherit; text-decoration:none; }
+  .compact .title h3 a:hover { color:var(--accent); }
+  .compact .dose { display:flex; align-items:baseline; gap:8px; margin:6px 0 4px; }
+  .compact .dose .u { font-family:var(--font-mono); font-size:26px; font-weight:600; line-height:1; }
+  .compact .dose .u small { font-size:13px; color:var(--muted); margin-left:2px; font-weight:500; }
+  .compact .dose .rest { font-family:var(--font-mono); font-size:13px; color:var(--muted); }
+  .compact .line { font-size:12px; color:var(--muted); margin-top:4px; }
+  .compact .foot { display:flex; align-items:center; gap:6px; margin-top:8px; }
+  .due-row { display:grid; grid-template-columns:minmax(200px,1fr) auto auto; grid-template-areas:"who stats acts" "syr syr syr"; gap:6px 24px; align-items:center; padding:12px 18px; }
+  .due-row .who { grid-area:who; }
+  .due-row .who.inline { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .due-row .who.inline h3 { font-size:16px; font-weight:800; }
+  .due-row .who.inline h3 a { color:inherit; text-decoration:none; }
+  .due-row .who.inline h3 a:hover { color:var(--accent); }
+  .due-row .who.inline .line { margin:0; font-size:13px; }
+  .due-row .title .inline-meta { margin:0; font-size:13px; } .due-row .stats { grid-area:stats; } .due-row .acts { grid-area:acts; } .due-row .syr { grid-area:syr; }
+  .due-row.done { border-color:var(--good); }
+  .due-row .title { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .due-row .title h3 { font-size:16px; font-weight:800; }
+  .due-row .title h3 a { color:inherit; text-decoration:none; }
+  .due-row .title h3 a:hover { color:var(--accent); }
+  .due-row .line { font-size:12px; color:var(--muted); margin-top:4px; }
+  .due-row .stats { display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+  .segs { display:inline-grid; grid-auto-flow:column; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); }
+  .seg { padding:4px 14px 5px; border-left:1px solid var(--border); min-width:78px; text-align:center; }
+  .seg:first-child { border-left:0; }
+  .seg .k { font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600; line-height:1.2; }
+  .seg .v { font-family:var(--font-mono); font-size:16px; font-weight:600; line-height:1.2; white-space:nowrap; }
+  .seg .v small { font-size:11px; font-weight:500; color:var(--muted); }
+  .seg.primary { background:var(--good-soft); }
+  .seg.primary .v { color:var(--good); }
+  .seg.primary .v small { color:var(--good); opacity:.85; }
+  .seg-note { font-size:11px; color:var(--faint); padding-right:2px; }
+  .segs-cap { font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); font-weight:600; text-align:center; width:100%; padding:2px 0; margin-bottom:2px; line-height:1.2; }
+  .plan-row .stats { align-items:center; }
+  .due-row .syr .gauge { margin:0; max-width:none; }
+  .due-row .acts { display:flex; gap:8px; justify-content:flex-end; align-items:center; height:40px; }
+  .due-row .who.inline { height:auto; }
+  @media (max-width:640px) { .due-row { grid-template-columns:1fr; grid-template-areas:"who" "stats" "syr" "acts"; } }
+  .plan-row { grid-template-columns:auto minmax(0,1fr) auto auto; grid-template-areas:"who mid stats acts" "days days days days"; }
+  .plan-row .mid { grid-area:mid; justify-self:center; }
+  .meta { display:flex; gap:20px; align-items:flex-start; }
+  .meta .m { text-align:center; }
+  .meta .k { font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600; line-height:1.2; }
+  .meta .v { font-size:14px; font-weight:600; line-height:1.3; white-space:nowrap; }
+  .plan-row .days { grid-area:days; }
+  .plan-row:not(.active) { grid-template-areas:"who mid stats acts"; }
+  .days { overflow-x:auto; overflow-y:hidden; padding:2px 0 8px; scrollbar-width:thin; min-width:0; max-width:100%; width:100%; }
+  .days::-webkit-scrollbar { height:8px; }
+  .days::-webkit-scrollbar-thumb { background:var(--border); border-radius:999px; }
+  .now-line > div { min-width:0; }
+  .plan-row .days { min-width:0; }
+  .ddots { display:flex; gap:4px; width:max-content; padding:14px 3px 0; align-items:flex-end; }
+  .dd { position:relative; display:flex; flex-direction:column; align-items:center; gap:2px; flex:none; width:22px; }
+  .dd b { display:block; width:18px; height:18px; border-radius:4px; border:1.5px solid var(--border); background:var(--surface-2); }
+  .dd small { font-size:9px; line-height:1; color:var(--faint); font-family:var(--font-mono); }
+  .dd i { position:absolute; top:-13px; left:0; font-size:9px; font-style:normal; font-weight:600; color:var(--muted); white-space:nowrap; letter-spacing:.04em; text-transform:uppercase; }
+  .dd.future b { background:var(--accent-soft); border-color:var(--accent); }
+  .dd.future small { color:var(--muted); }
+  .dd.done b { background:var(--good); border-color:var(--good); }
+  .dd.missed b { background:var(--bad); border-color:var(--bad); }
+  .dd.due b { background:var(--warn); border-color:var(--warn); }
+  .dd.skipped b { background:var(--surface); border-color:var(--border); background-image:linear-gradient(135deg, transparent 45%, var(--faint) 45%, var(--faint) 55%, transparent 55%); }
+  .dd.today b { outline:2px solid var(--accent); outline-offset:1px; }
+  .dd.today small { color:var(--accent); font-weight:600; }
+  .ddots .gap { flex:none; align-self:stretch; display:flex; align-items:center; padding:0 6px; margin:0 4px; border-left:1px dashed var(--border); border-right:1px dashed var(--border); }
+  .ddots .gap i { font-size:9px; font-style:normal; color:var(--faint); white-space:nowrap; letter-spacing:.04em; text-transform:uppercase; }
+  .dot.due { background:var(--warn); border-color:var(--warn); }
+  .dot.future { background:var(--surface); border-color:var(--accent-line); }
+  .dot.today { outline:2px solid var(--accent); outline-offset:1px; }
+  @media (max-width:640px) { .plan-row { grid-template-columns:1fr; grid-template-areas:"who" "mid" "stats" "days" "acts"; } .plan-row:not(.active) { grid-template-areas:"who" "mid" "stats" "acts"; } }
+  .plan-row.done { opacity:.4; }
+  .plan-row.done:hover, .plan-row.done:focus-visible { opacity:.75; }
+  .tab.done-tab { opacity:.45; }
+  .card.click { cursor:pointer; }
+  .card.click:hover, .card.click:focus-visible { border-color:var(--accent-line); box-shadow:var(--shadow); }
+  .card.click .faint { font-size:20px; line-height:1; }
+
+  /* layout bits */
+  .section { margin-bottom:24px; }
+  .section-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:10px; }
+  .section-head h2 { font-size:15px; font-weight:700; }
+  .section-head .hint { font-size:12px; color:var(--muted); }
+  .stack { display:grid; gap:10px; }
+  .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .spacer { flex:1; }
+  .muted { color:var(--muted); }
+  .faint { color:var(--faint); }
+  .small { font-size:12px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:16px; }
+  .card.lift { box-shadow:var(--shadow); }
+
+  /* summary strip */
+  .strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-bottom:16px; }
+  .tile { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:12px 14px; }
+  .tile .k { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .tile .v { font-family:var(--font-display); font-size:26px; font-weight:800; line-height:1.15; margin-top:2px; }
+  .tile.good .v { color:var(--good); } .tile.warn .v { color:var(--warn); } .tile.bad .v { color:var(--bad); }
+
+  /* dose card */
+  .dose-card { display:grid; grid-template-columns:minmax(0,1fr) 220px; gap:16px; align-items:start; }
+  .dose-card.done { border-color:var(--good); }
+  .dose-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .dose-head h3 { font-size:17px; font-weight:800; }
+  .dose-big { display:flex; align-items:baseline; gap:14px; margin:10px 0 6px; flex-wrap:wrap; }
+  .dose-big .units { font-family:var(--font-mono); font-size:38px; font-weight:600; line-height:1; letter-spacing:-.02em; }
+  .dose-big .units small { font-size:16px; color:var(--muted); font-weight:500; margin-left:2px; }
+  .dose-big .mg { font-family:var(--font-mono); font-size:18px; color:var(--muted); }
+  .vial-line { font-size:13px; color:var(--muted); display:flex; gap:6px 14px; flex-wrap:wrap; }
+  .vial-line b { color:var(--ink); font-weight:600; }
+  .dose-actions { display:grid; gap:8px; }
+  .note-box { margin-top:10px; padding:10px 12px; background:var(--surface-2); border-radius:var(--r-sm); font-size:13px; white-space:pre-wrap; }
+
+  /* syringe gauge */
+  .gauge { margin-top:8px; max-width:440px; }
+  .gauge svg { width:100%; height:auto; display:block; }
+
+  /* chips */
+  .chip { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:600; line-height:18px; border:1px solid transparent; }
+  .chip.accent { background:var(--accent-soft); color:var(--accent); }
+  .chip.good { background:var(--good-soft); color:var(--good); }
+  .chip.warn { background:var(--warn-soft); color:var(--warn); }
+  .chip.bad { background:var(--bad-soft); color:var(--bad); }
+  .chip.plain { background:var(--surface-2); color:var(--muted); }
+
+  /* buttons */
+  .btn { appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:var(--r-md); padding:9px 14px; font-weight:600; cursor:pointer; min-height:40px; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+  .btn:hover { background:var(--surface-2); }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+  .btn.primary:hover { filter:brightness(1.08); }
+  .btn.good { background:var(--good); border-color:var(--good); color:#fff; }
+  .btn.danger { color:var(--bad); }
+  .btn.sm { padding:5px 10px; min-height:30px; font-size:13px; }
+  .btn.ghost { border-color:transparent; background:transparent; }
+  .btn.ghost:hover { background:var(--surface-2); }
+  .btn[disabled] { opacity:.5; cursor:not-allowed; }
+
+  /* adherence dots */
+  .dots { display:flex; gap:4px; align-items:center; }
+  .dot { width:12px; height:12px; border-radius:3px; background:var(--surface-2); border:1px solid var(--border); }
+  .dot.done { background:var(--good); border-color:var(--good); }
+  .dot.missed { background:var(--bad); border-color:var(--bad); }
+  .dot.off { opacity:.35; }
+
+  /* tables */
+  .table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:var(--r-md); background:var(--surface); }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th, td { padding:9px 12px; text-align:left; border-bottom:1px solid var(--divider); vertical-align:middle; white-space:nowrap; }
+  th { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:600; background:var(--surface-2); }
+  tr:last-child td { border-bottom:0; }
+  tr.current td { background:var(--accent-soft); }
+  td.num, th.num { text-align:right; }
+  tr.occ.today td { background:var(--today-soft); box-shadow:inset 3px 0 0 var(--warn); }
+  tr.occ.late td { background:var(--bad-soft); box-shadow:inset 3px 0 0 var(--bad); }
+  tr.occ.today td:first-child, tr.occ.late td:first-child { box-shadow:inset 3px 0 0 var(--warn); }
+  tr.occ.late td:first-child { box-shadow:inset 3px 0 0 var(--bad); }
+  tr.occ.today td:not(:first-child), tr.occ.late td:not(:first-child) { box-shadow:none; }
+  tr.occ.done td { color:var(--muted); }
+  tr.occ.skipped td { color:var(--faint); }
+  tr.occ.skipped td:first-child { text-decoration:line-through; }
+  td.actions { text-align:right; }
+  td.actions .btn + .btn { margin-left:4px; }
+  .occ-wrap summary { font-size:14px; }
+
+  /* program card */
+  .prog-card h3 { font-size:16px; font-weight:800; }
+  .card-trio { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) clamp(300px, 24vw, 400px); gap:16px; align-items:stretch; }
+  .vials-card { display:flex; flex-direction:column; height:0; min-height:100%; overflow:hidden; }
+  .vials-card .section-head h3 { font-size:15px; font-weight:800; }
+  .vials-card .vial-list { overflow-y:auto; flex:1 1 auto; min-height:0; padding-right:2px; scrollbar-width:thin; }
+  @media (max-width:1400px) { .card-trio { grid-template-columns:minmax(0,1fr) minmax(0,1fr); } .vials-card { grid-column:1 / -1; height:auto; } }
+  @media (max-width:900px) { .card-trio { grid-template-columns:1fr; } }
+  .prog-meta { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px 16px; margin:10px 0; font-size:13px; }
+  .prog-meta .k { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.06em; font-weight:600; }
+  .prog-meta .v { font-weight:500; }
+  details summary { cursor:pointer; color:var(--accent); font-weight:600; font-size:13px; list-style:none; }
+  details summary::before { content:"▸ "; }
+  details[open] summary::before { content:"▾ "; }
+
+  /* vial */
+  .bar { height:8px; background:var(--surface-2); border-radius:999px; overflow:hidden; border:1px solid var(--border); }
+  .bar > i { display:block; height:100%; background:var(--accent); }
+  .bar.low > i { background:var(--warn); }
+  .bar.empty > i { background:var(--bad); }
+
+  /* forms */
+  .form { display:grid; gap:12px; }
+  .grid2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; align-items:start; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; align-items:start; }
+  .field { display:grid; gap:4px; }
+  .field label { font-size:12px; font-weight:600; color:var(--muted); }
+  .field input, .field select, .field textarea { width:100%; border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface); padding:9px 10px; min-height:40px; }
+  .field input[type="checkbox"], .field input[type="radio"], .checks input { width:auto; min-height:0; padding:0; margin:0; }
+  .field textarea { min-height:80px; resize:vertical; }
+  .field .help { font-size:12px; color:var(--faint); }
+  .checks { display:flex; gap:6px; flex-wrap:wrap; }
+  .checks label { display:inline-flex; align-items:center; gap:4px; padding:6px 10px; border:1px solid var(--border); border-radius:999px; font-size:13px; cursor:pointer; background:var(--surface); }
+  .checks label:has(input:checked) { background:var(--accent-soft); border-color:var(--accent-line); color:var(--accent); font-weight:600; }
+  .checks input { margin:0; }
+  .phases { display:grid; gap:6px; }
+  .phase-row { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:6px; align-items:center; }
+  .phase-row input { min-height:36px; padding:6px 8px; }
+  .calc-out { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+  .calc-out .tile .v { font-family:var(--font-mono); font-size:22px; font-weight:600; }
+
+  /* modal */
+  .modal-bg { position:fixed; inset:0; background:rgba(10,14,13,.5); display:none; align-items:flex-end; justify-content:center; z-index:50; padding:0; }
+  .modal-bg.open { display:flex; }
+  .modal { background:var(--surface); width:100%; max-width:620px; max-height:92vh; overflow:auto; border-radius:16px 16px 0 0; padding:18px 18px 24px; border:1px solid var(--border); }
+  .modal h2 { font-size:17px; font-weight:800; margin-bottom:12px; }
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; flex-wrap:wrap; }
+  @media (min-width:640px) { .modal-bg { align-items:center; padding:20px; } .modal { border-radius:16px; } }
+
+  .chart { position:relative; }
+  .chart svg { width:100%; height:auto; display:block; }
+  .chart .tip { position:absolute; top:6px; transform:translateX(-50%); background:var(--ink); color:var(--bg); font-size:12px; padding:4px 8px; border-radius:6px; pointer-events:none; white-space:nowrap; }
+  .chart .tip b { font-family:var(--font-mono); }
+  .chart .tip div { display:flex; align-items:center; gap:6px; white-space:nowrap; }
+  .chart .tip .small { color:var(--surface-2); opacity:.8; }
+  .swatch { display:inline-block; width:10px; height:10px; border-radius:3px; flex:none; }
+  .legend-item { display:inline-flex; align-items:center; gap:6px; font-size:13px; }
+  .gsel { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px 20px; }
+  .gsel-group .k { font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600; margin-bottom:6px; }
+  .gsel .checks label { font-size:12px; padding:4px 9px; }
+  .gpanel { padding:10px 12px 6px; }
+  .gbtn { appearance:none; border:0; border-left:1px solid var(--border); background:var(--surface); color:var(--muted); font-size:12px; font-weight:600; padding:5px 10px; cursor:pointer; }
+  .gbtn:first-child { border-left:0; }
+  .gbtn[aria-selected="true"] { background:var(--accent); color:var(--accent-ink); }
+  .empty { text-align:center; padding:36px 16px; color:var(--muted); border:1px dashed var(--border); border-radius:var(--r-lg); }
+  .toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:10px 16px; border-radius:999px; font-weight:600; font-size:14px; box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:opacity .2s; z-index:60; }
+  .toast.show { opacity:1; }
+
+  @media (max-width:760px) {
+    .strip { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .dose-card { grid-template-columns:1fr; }
+    .grid3 { grid-template-columns:1fr 1fr; }
+    .calc-out { grid-template-columns:1fr; }
+  }
+  @media (max-width:480px) { .grid2, .grid3 { grid-template-columns:1fr; } .phase-row { grid-template-columns:1fr 1fr 1fr auto; } }
+  @media (prefers-reduced-motion: reduce) { .toast { transition:none; } }
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20l4-4"/><path d="M7 17l9-9"/><path d="M14 6l4 4"/><path d="M16 4l4 4"/><path d="M10 11l2 2"/><path d="M12 9l2 2"/></svg>
+      </div>
+      <div>
+        <h1>Peptide Protocol Tracker</h1>
+        <div class="sub" id="todayLabel"></div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="storage" id="storageBadge"><i></i><span>Loading</span></span>
+      <button class="btn sm ghost" data-action="settings" aria-label="Settings">⚙</button>
+    </div>
+  </header>
+
+  <nav class="jump" role="tablist">
+    <div class="tabs" id="tabs"></div>
+    <span class="spacer"></span>
+    <button class="btn sm" data-action="lab">+ Lab</button>
+    <button class="btn sm primary" data-action="log">+ Log a dose</button>
+  </nav>
+
+  <div class="view active" id="view-today">
+    <section class="sec" id="today"></section>
+    <section class="sec" id="programs"></section>
+  </div>
+  <div class="view" id="view-program">
+    <section class="sec" id="program"></section>
+  </div>
+  <div class="view" id="view-plan">
+    <section class="sec" id="graphs"></section>
+    <section class="sec" id="log"></section>
+    <div id="labs"></div>
+    <div id="orphans"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg" role="dialog" aria-modal="true">
+  <div class="modal" id="modal"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- helpers ---------- */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DAY = 86400000;
+
+function P(iso) { return iso ? new Date(iso + 'T12:00:00') : null; }
+function ISO(d) { const z = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; }
+function today() { return P(ISO(new Date())); }
+function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+function daysBetween(a, b) { return Math.round((P(ISO(b)) - P(ISO(a))) / DAY); }
+function fmtDate(d, withYear) { return d ? new Intl.DateTimeFormat('en-US', { month:'short', day:'numeric', ...(withYear ? {year:'numeric'} : {}) }).format(d) : '—'; }
+function fmtTime(iso) { return new Intl.DateTimeFormat('en-US', { hour:'numeric', minute:'2-digit' }).format(new Date(iso)); }
+function n(v, d=2) { if (!Number.isFinite(v)) return '—'; return Number(v.toFixed(d)).toString(); }
+function num(v) { const x = parseFloat(v); return Number.isFinite(x) ? x : null; }
+
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1800); }
+
+/* ---------- storage ---------- */
+const LS_KEY = 'peptide-tracker-v1';
+const DEFAULT_SETTINGS = { syringeUnits: 100, discardDays: 28, sites: ['L abdomen','R abdomen','L thigh','R thigh'] };
+const store = {
+  mode: 'loading', db: null, downloads: null,
+  data: { programs:{}, vials:{}, logs:{}, settings:{}, labs:{} },
+  get settings() { return { ...DEFAULT_SETTINGS, ...(this.data.settings.main || {}) }; },
+  loadLocal() { try { const raw = localStorage.getItem(LS_KEY); if (raw) this.data = { ...this.data, ...JSON.parse(raw) }; this.data.labs = this.data.labs || {}; } catch {} },
+  saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(this.data)); } catch {} },
+  async put(col, id, obj) {
+    obj = { ...obj, id };
+    if (this.db) { try { await this.db.collection(col).doc(id).set(obj); } catch (e) { toast('Save failed: ' + (e.message || e.code)); throw e; } }
+    else { this.data[col][id] = obj; this.saveLocal(); render(); }
+  },
+  async del(col, id) {
+    if (this.db) { try { await this.db.collection(col).doc(id).delete(); } catch (e) { toast('Delete failed: ' + (e.message || e.code)); throw e; } }
+    else { delete this.data[col][id]; this.saveLocal(); render(); }
+  },
+  async init() {
+    const badge = $('#storageBadge');
+    let db = null;
+    try { db = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch { db = null; }
+    if (db) {
+      this.db = db; this.mode = 'cloud';
+      badge.className = 'storage cloud'; badge.querySelector('span').textContent = 'Synced';
+      let pending = 5;
+      const done = () => { if (--pending <= 0 && !this.ready) { this.ready = true; render(); } else if (this.ready) render(); };
+      for (const col of ['programs','vials','logs','settings','labs']) {
+        db.collection(col).onSnapshot(snap => {
+          const o = {}; snap.docs.forEach(d => { if (d.exists) o[d.id] = d.data(); });
+          this.data[col] = o; done();
+        }, err => { toast('Sync error: ' + err.code); done(); });
+      }
+      setTimeout(() => { if (!this.ready) { this.ready = true; render(); } }, 8000);
+    } else {
+      this.mode = 'local'; this.loadLocal(); this.ready = true;
+      badge.className = 'storage local'; badge.querySelector('span').textContent = 'This device only';
+      render();
+    }
+    try { this.downloads = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch { this.downloads = null; }
+  }
+};
+
+/* ---------- domain ---------- */
+const programs = () => Object.values(store.data.programs).sort((a,b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name));
+const vials = () => Object.values(store.data.vials);
+const logs = () => Object.values(store.data.logs).sort((a,b) => b.at.localeCompare(a.at));
+
+function isDue(p, d) {
+  if (p.status !== 'active' || !p.startDate) return false;
+  const start = P(p.startDate);
+  if (d < start) return false;
+  const end = programEnd(p); if (end && d > end) return false;
+  const ci = cycleInfo(p, d); if (ci && !ci.on) return false;
+  const f = p.freq || { type:'weekly' };
+  const dow = d.getDay();
+  if (f.type === 'daily') return true;
+  if (f.type === 'weekly') return dow === ((f.days && f.days.length) ? f.days[0] : start.getDay());
+  if (f.type === 'days') return (f.days || []).includes(dow);
+  if (f.type === 'everyN') return daysBetween(start, d) % Math.max(1, f.everyN || 2) === 0;
+  return false;
+}
+function cycleInfo(p, d) {
+  const c = p.cycle; if (!c || !(c.onDays > 0) || !p.startDate) return null;
+  const start = P(p.startDate); const days = daysBetween(start, d); if (days < 0) return null;
+  const period = c.onDays + Math.max(0, c.offDays || 0);
+  const idx = Math.floor(days / period); const pos = days - idx * period;
+  const finished = !!(c.count && idx >= c.count);
+  const cycleStart = addDays(start, idx * period);
+  return { idx, pos, on: pos < c.onDays && !finished, finished, cycleStart, onEnd: addDays(cycleStart, c.onDays - 1), nextStart: addDays(cycleStart, period), period, count: c.count || null, offDays: Math.max(0, c.offDays || 0) };
+}
+function cycleLabel(p) {
+  const c = p.cycle; if (!c || !(c.onDays > 0)) return '';
+  const f = n => n % 7 === 0 ? `${n / 7} wk` : `${n} d`;
+  return `${f(c.onDays)} on / ${c.offDays ? f(c.offDays) + ' off' : 'no break'}${c.count ? ` · ${c.count} cycle${c.count > 1 ? 's' : ''}` : ' · repeats'}`;
+}
+function shotsPerWeek(p) {
+  const f = p.freq || { type:'weekly' };
+  if (f.type === 'daily') return 7;
+  if (f.type === 'days') return Math.max(1, (f.days || []).length);
+  if (f.type === 'everyN') return 7 / Math.max(1, f.everyN || 2);
+  return 1;
+}
+function perShot(p, mg) { return mg == null ? null : (p.doseBasis === 'weekly' ? mg / shotsPerWeek(p) : mg); }
+function weekOf(p, d) { if (!p.startDate) return null; const ci = cycleInfo(p, d); if (ci) return Math.floor(ci.pos / 7) + 1; return Math.floor(daysBetween(P(p.startDate), d) / 7) + 1; }
+function phaseFor(p, week) {
+  if (p.doseMode !== 'ramp' || !p.phases?.length) return null;
+  return p.phases.find(ph => week >= ph.from && (ph.to == null || week <= ph.to)) || null;
+}
+function doseFor(p, d) {
+  if (p.doseMode === 'ramp') { const w = weekOf(p, d); const ph = phaseFor(p, w); if (ph) return perShot(p, ph.mg); const last = p.phases?.[p.phases.length - 1]; const end = programEnd(p); const ci = cycleInfo(p, d); return (last && last.to != null && w > last.to && ((end && d <= end) || (ci && ci.on))) ? perShot(p, last.mg) : null; }
+  return perShot(p, p.doseMg ?? null);
+}
+function scheduleComplete(p, d) { const end = programEnd(p); return !!(end && d > end); }
+function nextDue(p, from, span=400) { for (let i=1;i<=span;i++) { const d = addDays(from, i); if (isDue(p, d)) return d; } return null; }
+function freqLabel(p) {
+  const f = p.freq || {}; const start = P(p.startDate);
+  if (f.type === 'daily') return 'Daily';
+  if (f.type === 'weekly') return 'Weekly · ' + DOW[(f.days && f.days.length) ? f.days[0] : (start ? start.getDay() : 6)];
+  if (f.type === 'days') return (f.days || []).slice().sort().map(i => DOW[i]).join(' ') || 'No days set';
+  if (f.type === 'everyN') return `Every ${f.everyN || 2} days`;
+  return '—';
+}
+function activeVial(p) {
+  const usable = usableVials(p);
+  if (usable.length) return usable[0];
+  return vials().filter(v => v.programId === p.id && !v.discarded && v.mixedDate).sort((a,b) => (b.mixedDate||'').localeCompare(a.mixedDate||''))[0] || null;
+}
+function byVialOrder(a, b) { return (a.order ?? 1e9) - (b.order ?? 1e9) || (a.mixedDate ? 0 : 1) - (b.mixedDate ? 0 : 1) || (a.mixedDate || '').localeCompare(b.mixedDate || '') || (a.createdAt || '').localeCompare(b.createdAt || ''); }
+function programVials(p) { return vials().filter(v => v.programId === p.id && !v.discarded).sort(byVialOrder); }
+function usableVials(p) {
+  return programVials(p).filter(v => v.mixedDate).filter(v => { const st = vialStats(v); return !st.expired && st.remaining > 1e-9; });
+}
+async function saveVialOrder(ids) {
+  for (let i = 0; i < ids.length; i++) { const v = store.data.vials[ids[i]]; if (v && v.order !== i) await store.put('vials', ids[i], { ...v, order: i }); }
+}
+function stockVials(p) { return programVials(p).filter(v => !v.mixedDate); 
+}
+function vialStats(v) {
+  const s = store.settings;
+  const conc = (v.totalMg > 0 && v.waterMl > 0) ? v.totalMg / v.waterMl : NaN;
+  const used = logs().filter(l => l.vialId === v.id).reduce((a,l) => a + (l.doseMg || 0), 0);
+  const remaining = v.totalMg - used;
+  const mixed = P(v.mixedDate);
+  const discardDays = v.discardDays ?? s.discardDays;
+  const discardOn = mixed ? addDays(mixed, discardDays) : null;
+  const daysLeft = discardOn ? daysBetween(today(), discardOn) : null;
+  return { conc, used, remaining, mixed, discardOn, daysLeft, expired: daysLeft != null && daysLeft < 0, unmixed: !v.mixedDate };
+}
+function drawFor(mg, conc) {
+  const ml = mg / conc; return { ml, units: ml * 100 };
+}
+function logsOn(p, d) { const iso = ISO(d); return logs().filter(l => l.programId === p.id && ISO(new Date(l.at)) === iso); }
+function missedDates(p, days=14) {
+  const out = []; const t = today();
+  for (let i=1;i<=days;i++) { const d = addDays(t, -i); if (isDue(p, d) && !logsOn(p, d).length && !isSkipped(p, d)) out.push(d); }
+  return out;
+}
+function suggestSite(p) {
+  const sites = store.settings.sites; if (!sites.length) return '';
+  const recent = logs().filter(l => l.programId === p.id && l.site);
+  const lastUsed = {}; recent.forEach(l => { if (!(l.site in lastUsed)) lastUsed[l.site] = l.at; });
+  return sites.slice().sort((a,b) => (lastUsed[a] || '').localeCompare(lastUsed[b] || ''))[0];
+}
+
+/* ---------- pharmacokinetic level chart ---------- */
+function pkParams(p) {
+  const hl = num(p.halfLifeDays); if (!(hl > 0)) return null;
+  const ke = Math.LN2 / hl; let ka = Math.LN2 / Math.max(0.2, num(p.absorbDays) || 1);
+  if (Math.abs(ka - ke) < 1e-6) ka *= 1.05;
+  return { hl, ke, ka };
+}
+function levelAt(doses, t, k) {
+  let a = 0;
+  for (const d of doses) { const dt = (t - d.t) / 86400e3; if (dt <= 0) continue; a += d.mg * (k.ka / (k.ka - k.ke)) * (Math.exp(-k.ke * dt) - Math.exp(-k.ka * dt)); }
+  return a;
+}
+function levelData(p) {
+  const k = pkParams(p); if (!k) return null;
+  const now = Date.now(); const t0 = today();
+  const from = addDays(t0, -42).getTime(), to = addDays(t0, 28).getTime();
+  const doses = logs().filter(l => l.programId === p.id && l.doseMg > 0).map(l => ({ t: new Date(l.at).getTime(), mg: l.doseMg, actual: true }));
+  const occ = occurrences(p);
+  for (const r of (occ.rows || [])) if ((r.state === 'future' || r.state === 'today') && r.mg != null) doses.push({ t: P(r.iso).getTime(), mg: r.mg, actual: false });
+  const pts = []; const step = 6 * 3600e3;
+  for (let t = from; t <= to; t += step) pts.push({ t, v: levelAt(doses, t, k) });
+  const nowV = levelAt(doses, now, k);
+  let peak = null; for (const q of pts) if (!peak || q.v > peak.v) peak = q;
+  let trough = null; for (const q of pts) if (q.t <= now && q.t >= now - 14 * 86400e3 && (!trough || q.v < trough.v)) trough = q;
+  return { k, doses, pts, now: nowV, peak, trough, from, to, nowT: now };
+}
+const chartData = {};
+function levelChart(p) {
+  const d = levelData(p); if (!d) return '';
+  const id = 'lvl-' + p.id;
+  if (!d.doses.length) return `<div class="card muted small">No doses logged or scheduled yet, so there is nothing to plot. Half-life is set to ${n(d.k.hl, 1)} days.</div>`;
+  const W = 760, H = 210, L = 46, R = 14, T = 16, B = 30;
+  const yMax = Math.max(d.peak.v, 1) * 1.12;
+  const x = t => L + (t - d.from) / (d.to - d.from) * (W - L - R);
+  const y = v => T + (1 - v / yMax) * (H - T - B);
+  const past = d.pts.filter(q => q.t <= d.nowT), future = d.pts.filter(q => q.t >= d.nowT);
+  if (past.length && future.length && future[0].t !== past[past.length - 1].t) future.unshift(past[past.length - 1]);
+  const path = arr => arr.map((q, i) => `${i ? 'L' : 'M'}${x(q.t).toFixed(1)},${y(q.v).toFixed(1)}`).join(' ');
+  const area = `${path(d.pts)} L${x(d.pts[d.pts.length - 1].t).toFixed(1)},${y(0)} L${x(d.pts[0].t).toFixed(1)},${y(0)} Z`;
+  const step = yMax / 4; const nice = Math.pow(10, Math.floor(Math.log10(step))) * (step / Math.pow(10, Math.floor(Math.log10(step))) < 2 ? 1 : step / Math.pow(10, Math.floor(Math.log10(step))) < 5 ? 2 : 5);
+  let grid = ''; for (let v = 0; v <= yMax; v += nice) grid += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--divider)"/><text x="${L - 6}" y="${y(v) + 3}" font-size="9" text-anchor="end" fill="var(--muted)" font-family="var(--font-mono)">${n(v, 0)}</text>`;
+  let xt = ''; const first = new Date(d.from); first.setHours(12, 0, 0, 0);
+  for (let t = first.getTime(); t <= d.to; t += 7 * 86400e3) { const dd = new Date(t); xt += `<text x="${x(t)}" y="${H - 10}" font-size="9" text-anchor="middle" fill="var(--muted)" font-family="var(--font-body)">${fmtDate(dd)}</text>`; }
+  const doseTicks = d.doses.filter(q => q.t >= d.from && q.t <= d.to).map(q => `<line x1="${x(q.t)}" x2="${x(q.t)}" y1="${y(0) + 1}" y2="${y(0) + 6}" stroke="${q.actual ? 'var(--accent)' : 'var(--faint)'}" stroke-width="2"/>`).join('');
+  const nowX = x(d.nowT);
+  chartData[id] = { pts: d.pts, L, R, W, x0: d.from, x1: d.to, unit: 'mg', fmt: v => `${n(v, 1)} mg`, y, x };
+  return `<div class="chart" data-chart="${id}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Estimated amount in system over time">
+    ${grid}
+    <path d="${area}" fill="var(--accent)" opacity=".1"/>
+    <path d="${path(past)}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="${path(future)}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="4 4" stroke-linejoin="round" stroke-linecap="round" opacity=".7"/>
+    <line x1="${nowX}" x2="${nowX}" y1="${T}" y2="${y(0)}" stroke="var(--muted)" stroke-dasharray="2 3"/>
+    <text x="${nowX + 4}" y="${T + 9}" font-size="9" fill="var(--muted)" font-family="var(--font-body)">today</text>
+    <circle cx="${x(d.peak.t)}" cy="${y(d.peak.v)}" r="5" fill="var(--surface)"/><circle cx="${x(d.peak.t)}" cy="${y(d.peak.v)}" r="3.5" fill="var(--accent)"/>
+    <text x="${x(d.peak.t) + (x(d.peak.t) > W - 90 ? -8 : 8)}" y="${y(d.peak.v) - 6}" font-size="9" text-anchor="${x(d.peak.t) > W - 90 ? 'end' : 'start'}" fill="var(--ink)" font-family="var(--font-body)">peak ${n(d.peak.v, 1)} mg</text>
+    ${doseTicks}${xt}
+    <text x="${L}" y="${T - 5}" font-size="9" fill="var(--faint)" font-family="var(--font-body)" letter-spacing=".06em">MG IN SYSTEM (EST.)</text>
+    <line class="xh" x1="0" x2="0" y1="${T}" y2="${y(0)}" stroke="var(--ink)" opacity="0" stroke-width="1"/>
+    <circle class="xd" cx="0" cy="0" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2" opacity="0"/>
+    <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" class="hit"/>
+  </svg><div class="tip" hidden></div></div>`;
+}
+function levelSection(p) {
+  const d = levelData(p); if (!d) return '';
+  const tiles = d.doses.length ? `<div class="strip" style="margin-bottom:10px">
+      <div class="tile"><div class="k">In system now</div><div class="v num">${n(d.now, 1)} <small class="muted" style="font-size:13px">mg</small></div></div>
+      <div class="tile"><div class="k">Peak in window</div><div class="v num">${n(d.peak.v, 1)} <small class="muted" style="font-size:13px">mg</small></div><div class="small muted">${fmtDate(new Date(d.peak.t))}</div></div>
+      <div class="tile"><div class="k">Low · last 14 d</div><div class="v num">${d.trough ? n(d.trough.v, 1) : '—'} <small class="muted" style="font-size:13px">mg</small></div></div>
+      <div class="tile"><div class="k">Half-life</div><div class="v num">${n(d.k.hl, 1)} <small class="muted" style="font-size:13px">days</small></div><div class="small muted">${p.ester && ESTERS.find(e => e.key === p.ester) ? ESTERS.find(e => e.key === p.ester).name.replace('Testosterone ', '') + ' · ' : ''}peak ~${n(num(p.absorbDays) || 1, 1)} d after a dose</div></div>
+    </div>` : '';
+  return `<section class="sec"><div class="section-head"><h2>Level in system</h2><span class="hint">Estimated from logged doses (solid) and the schedule ahead (dashed). Not a blood level.</span></div>${tiles}${levelChart(p)}</section>`;
+}
+
+/* ---------- labs ---------- */
+const LAB_MARKERS = [
+  ['E2', 'Estradiol (E2)', 'pg/mL', 'Hormones'], ['TT', 'Total testosterone', 'ng/dL', 'Hormones'], ['FT', 'Free testosterone', 'pg/mL', 'Hormones'], ['SHBG', 'SHBG', 'nmol/L', 'Hormones'],
+  ['LH', 'LH', 'mIU/mL', 'Hormones'], ['FSH', 'FSH', 'mIU/mL', 'Hormones'], ['PRL', 'Prolactin', 'ng/mL', 'Hormones'], ['DHEAS', 'DHEA-S', 'µg/dL', 'Hormones'], ['IGF1', 'IGF-1', 'ng/mL', 'Hormones'], ['CORT', 'Cortisol (AM)', 'µg/dL', 'Hormones'],
+  ['TSH', 'TSH', 'mIU/L', 'Thyroid'], ['FT4', 'Free T4', 'ng/dL', 'Thyroid'], ['FT3', 'Free T3', 'pg/mL', 'Thyroid'],
+  ['HCT', 'Hematocrit', '%', 'Blood'], ['HGB', 'Hemoglobin', 'g/dL', 'Blood'], ['RBC', 'RBC', 'M/µL', 'Blood'], ['WBC', 'WBC', 'K/µL', 'Blood'], ['PLT', 'Platelets', 'K/µL', 'Blood'],
+  ['FERR', 'Ferritin', 'ng/mL', 'Iron'], ['IRON', 'Iron', 'µg/dL', 'Iron'], ['TIBC', 'TIBC', 'µg/dL', 'Iron'], ['TSAT', 'Iron saturation', '%', 'Iron'],
+  ['VITD', 'Vitamin D (25-OH)', 'ng/mL', 'Vitamins'], ['B12', 'Vitamin B12', 'pg/mL', 'Vitamins'], ['FOL', 'Folate', 'ng/mL', 'Vitamins'], ['MG', 'Magnesium', 'mg/dL', 'Vitamins'], ['ZN', 'Zinc', 'µg/dL', 'Vitamins'],
+  ['GLU', 'Fasting glucose', 'mg/dL', 'Metabolic'], ['A1C', 'HbA1c', '%', 'Metabolic'], ['INS', 'Fasting insulin', 'µIU/mL', 'Metabolic'],
+  ['TC', 'Total cholesterol', 'mg/dL', 'Lipids'], ['LDL', 'LDL', 'mg/dL', 'Lipids'], ['HDL', 'HDL', 'mg/dL', 'Lipids'], ['TG', 'Triglycerides', 'mg/dL', 'Lipids'], ['APOB', 'ApoB', 'mg/dL', 'Lipids'], ['LPA', 'Lp(a)', 'nmol/L', 'Lipids'],
+  ['ALT', 'ALT', 'U/L', 'Liver & kidney'], ['AST', 'AST', 'U/L', 'Liver & kidney'], ['GGT', 'GGT', 'U/L', 'Liver & kidney'], ['CREA', 'Creatinine', 'mg/dL', 'Liver & kidney'], ['EGFR', 'eGFR', 'mL/min', 'Liver & kidney'], ['BUN', 'BUN', 'mg/dL', 'Liver & kidney'],
+  ['PSA', 'PSA', 'ng/mL', 'Other'], ['CRP', 'hs-CRP', 'mg/L', 'Other'], ['HCY', 'Homocysteine', 'µmol/L', 'Other'], ['BP', 'Blood pressure (systolic)', 'mmHg', 'Other'], ['WT', 'Body weight', 'lb', 'Other'],
+  ['OTHER', 'Other…', '', 'Other']
+];
+const labs = () => Object.values(store.data.labs || {}).sort((a, b) => a.at.localeCompare(b.at));
+function labForm(preset) {
+  openModal(`<h2>Log a lab result</h2><form class="form" id="labForm">
+    <div class="grid2">
+      <div class="field"><label for="lb-marker">Marker</label><select id="lb-marker" name="marker">${[...new Set(LAB_MARKERS.map(m => m[3]))].map(g => `<optgroup label="${g}">${LAB_MARKERS.filter(m => m[3] === g).map(([k, name, unit]) => `<option value="${k}" ${k === (preset || 'E2') ? 'selected' : ''}>${name}${unit ? ' · ' + unit : ''}</option>`).join('')}</optgroup>`).join('')}</select></div>
+      <div class="field"><label for="lb-date">Date</label><input id="lb-date" name="at" type="date" value="${ISO(new Date())}" required></div>
+    </div>
+    <div class="grid2" id="lb-other" hidden>
+      <div class="field"><label for="lb-name">Marker name</label><input id="lb-name" name="name" placeholder="e.g. LH"></div>
+      <div class="field"><label for="lb-unit">Unit</label><input id="lb-unit" name="unit" placeholder="e.g. mIU/mL"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label for="lb-value">Value <span class="faint" id="lb-unitlabel"></span></label><input id="lb-value" name="value" type="text" inputmode="decimal" required></div>
+      <div class="field"><label for="lb-note">Note</label><input id="lb-note" name="note" placeholder="Lab, time of day, days since dose…"></div>
+    </div>
+    <div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="submit" class="btn primary">Save result</button></div></form>`);
+  const form = $('#labForm');
+  const sync = () => { const m = LAB_MARKERS.find(x => x[0] === form.marker.value); $('#lb-other').hidden = form.marker.value !== 'OTHER'; $('#lb-unitlabel').textContent = m && m[2] ? '(' + m[2] + ')' : ''; };
+  form.marker.addEventListener('change', sync); sync();
+  form.addEventListener('submit', async e => {
+    e.preventDefault(); const fd = new FormData(form); const v = num(fd.get('value')); if (v == null) return;
+    const m = LAB_MARKERS.find(x => x[0] === fd.get('marker'));
+    const other = fd.get('marker') === 'OTHER';
+    const obj = { marker: other ? (fd.get('name').trim() || 'Other') : m[0], name: other ? (fd.get('name').trim() || 'Other') : m[1], unit: other ? fd.get('unit').trim() : m[2], value: v, at: fd.get('at'), note: fd.get('note').trim(), createdAt: new Date().toISOString() };
+    closeModal(); await store.put('labs', uid(), obj); toast('Lab result saved');
+  });
+}
+function labsChart(key, entries) {
+  const id = 'lab-' + key.replace(/[^\w-]/g, '_');
+  const W = 760, H = 170, L = 46, R = 14, T = 16, B = 28;
+  const vals = entries.map(e => e.value); const lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = Math.max((hi - lo) * 0.25, hi * 0.1 || 1); const yMin = Math.max(0, lo - pad), yMax = hi + pad;
+  const t0 = new Date(entries[0].at + 'T12:00:00').getTime(), t1 = new Date(entries[entries.length - 1].at + 'T12:00:00').getTime();
+  const span = Math.max(t1 - t0, 14 * 86400e3); const from = t0 - span * 0.05, to = t0 + span * 1.05;
+  const x = t => L + (t - from) / (to - from) * (W - L - R);
+  const y = v => T + (1 - (v - yMin) / (yMax - yMin)) * (H - T - B);
+  const pts = entries.map(e => ({ t: new Date(e.at + 'T12:00:00').getTime(), v: e.value, note: e.note }));
+  const path = pts.map((q, i) => `${i ? 'L' : 'M'}${x(q.t).toFixed(1)},${y(q.v).toFixed(1)}`).join(' ');
+  const step = (yMax - yMin) / 3; const nice = Math.pow(10, Math.floor(Math.log10(step))) * (step / Math.pow(10, Math.floor(Math.log10(step))) < 2 ? 1 : step / Math.pow(10, Math.floor(Math.log10(step))) < 5 ? 2 : 5);
+  let grid = ''; for (let v = Math.ceil(yMin / nice) * nice; v <= yMax; v += nice) grid += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--divider)"/><text x="${L - 6}" y="${y(v) + 3}" font-size="9" text-anchor="end" fill="var(--muted)" font-family="var(--font-mono)">${n(v, 1)}</text>`;
+  const dots = pts.map(q => `<circle cx="${x(q.t)}" cy="${y(q.v)}" r="6" fill="var(--surface)"/><circle cx="${x(q.t)}" cy="${y(q.v)}" r="4" fill="var(--good)"/>`).join('');
+  const xl = pts.map(q => `<text x="${x(q.t)}" y="${H - 9}" font-size="9" text-anchor="middle" fill="var(--muted)" font-family="var(--font-body)">${fmtDate(new Date(q.t))}</text>`).filter((_, i, a) => a.length <= 8 || i % Math.ceil(a.length / 8) === 0).join('');
+  const last = pts[pts.length - 1];
+  chartData[id] = { pts, L, R, W, x0: from, x1: to, fmt: v => `${n(v, 1)} ${entries[0].unit || ''}`, y, x, snap: true };
+  return `<div class="chart" data-chart="${id}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(entries[0].name)} over time">${grid}
+    <path d="${path}" fill="none" stroke="var(--good)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}
+    <text x="${x(last.t)}" y="${y(last.v) - 10}" font-size="10" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)">${n(last.v, 1)}</text>
+    ${xl}
+    <line class="xh" x1="0" x2="0" y1="${T}" y2="${y(yMin)}" stroke="var(--ink)" opacity="0"/>
+    <circle class="xd" cx="0" cy="0" r="5" fill="var(--good)" stroke="var(--surface)" stroke-width="2" opacity="0"/>
+    <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" class="hit"/>
+  </svg><div class="tip" hidden></div></div>`;
+}
+function labsSection(opts = {}) {
+  const all = labs(); const groups = {};
+  for (const e of all) { if (opts.only && !opts.only.includes(e.marker)) continue; (groups[e.marker] = groups[e.marker] || []).push(e); }
+  const keys = Object.keys(groups);
+  let h = `<div class="section-head"><h2>${opts.title || 'Labs'}</h2><div class="row"><button class="btn sm primary" data-action="lab" ${opts.preset ? `data-preset="${opts.preset}"` : ''}>+ Lab result</button></div></div>`;
+  if (!keys.length) { h += `<div class="empty small">No lab results yet. Log estradiol, testosterone or anything else you get tested and it charts here.</div>`; return `<section class="sec">${h}</section>`; }
+  h += `<div class="stack">`;
+  for (const k of keys) {
+    const es = groups[k]; const last = es[es.length - 1]; const prev = es.length > 1 ? es[es.length - 2] : null;
+    const delta = prev ? last.value - prev.value : null;
+    h += `<div class="card"><div class="row" style="margin-bottom:6px"><h3 style="font-size:15px">${esc(last.name)}</h3><span class="muted small">${esc(last.unit)}</span><span class="spacer"></span><span class="num" style="font-size:20px;font-weight:600">${n(last.value, 1)}</span><span class="small muted">${fmtDate(P(last.at))}${delta != null ? ` · ${delta >= 0 ? '+' : ''}${n(delta, 1)} vs prior` : ''}</span></div>
+      ${es.length > 1 ? labsChart(k, es) : `<div class="small muted">One result so far. A second one draws the line.</div>`}
+      <details style="margin-top:8px"><summary>All results (${es.length})</summary><div class="table-wrap" style="margin-top:6px"><table><thead><tr><th>Date</th><th class="num">Value</th><th>Note</th><th></th></tr></thead><tbody>${es.slice().reverse().map(e => `<tr><td>${fmtDate(P(e.at), true)}</td><td class="num">${n(e.value, 1)} ${esc(e.unit)}</td><td class="muted" style="white-space:normal">${esc(e.note || '')}</td><td><button class="btn sm ghost danger" data-action="del-lab" data-id="${e.id}" aria-label="Delete">✕</button></td></tr>`).join('')}</tbody></table></div></details></div>`;
+  }
+  return `<section class="sec">${h}</div></section>`;
+}
+
+/* ---------- chart hover ---------- */
+document.addEventListener('pointermove', e => {
+  const c = e.target.closest('.chart'); if (!c) return;
+  const d = chartData[c.dataset.chart]; if (!d) return;
+  const svg = c.querySelector('svg'); const r = svg.getBoundingClientRect(); const sx = (e.clientX - r.left) / r.width * d.W;
+  const t = d.x0 + (Math.min(Math.max(sx, d.L), d.W - d.L - d.R + d.L) - d.L) / (d.W - d.L - d.R) * (d.x1 - d.x0);
+  if (!Number.isFinite(t)) return;
+  if (d.multi) {
+    const tol = (d.x1 - d.x0) / 40; const tip = c.querySelector('.tip'); tip.textContent = '';
+    const xh = svg.querySelector('.xh'); const px = d.x(t); xh.setAttribute('x1', px); xh.setAttribute('x2', px); xh.setAttribute('opacity', '.35');
+    let any = false;
+    d.series.forEach((sr, i) => {
+      const dot = svg.querySelector(`.xd[data-i="${i}"]`); if (!sr.pts.length) { dot.setAttribute('opacity', '0'); return; }
+      let best = sr.pts[0]; for (const q of sr.pts) if (Math.abs(q.t - t) < Math.abs(best.t - t)) best = q;
+      const show = sr.dense || Math.abs(best.t - t) <= tol;
+      if (!show) { dot.setAttribute('opacity', '0'); return; }
+      any = true; dot.setAttribute('cx', d.x(best.t)); dot.setAttribute('cy', d.y(sr.yv(best.v))); dot.setAttribute('opacity', '1');
+      const row = document.createElement('div'); const sw = document.createElement('span'); sw.className = 'swatch'; sw.style.background = sr.color; row.appendChild(sw);
+      const b = document.createElement('b'); b.textContent = `${n(best.v, 2)} ${sr.unit || ''}`; row.appendChild(b); row.appendChild(document.createTextNode(` ${sr.name}${sr.dense ? '' : ' · ' + fmtDate(new Date(best.t))}`)); tip.appendChild(row);
+    });
+    const hd = document.createElement('div'); hd.className = 'small'; hd.textContent = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(t)); tip.prepend(hd);
+    tip.hidden = !any; const lx = px / d.W * r.width; tip.style.left = Math.min(Math.max(lx, 90), r.width - 90) + 'px';
+    return;
+  }
+  let best = d.pts[0]; for (const q of d.pts) if (Math.abs(q.t - t) < Math.abs(best.t - t)) best = q;
+  const xh = svg.querySelector('.xh'), xd = svg.querySelector('.xd'); const px = d.x(best.t), py = d.y(best.v);
+  xh.setAttribute('x1', px); xh.setAttribute('x2', px); xh.setAttribute('opacity', '.35'); xd.setAttribute('cx', px); xd.setAttribute('cy', py); xd.setAttribute('opacity', '1');
+  const tip = c.querySelector('.tip'); tip.hidden = false; tip.textContent = ''; const b = document.createElement('b'); b.textContent = d.fmt(best.v); tip.appendChild(b); tip.appendChild(document.createTextNode(' · ' + new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', ...(d.snap ? {} : { hour: 'numeric' }) }).format(new Date(best.t)) + (best.note ? ' · ' + best.note : '')));
+  const lx = px / d.W * r.width; tip.style.left = Math.min(Math.max(lx, 60), r.width - 60) + 'px';
+});
+document.addEventListener('pointerleave', e => { const c = e.target.closest && e.target.closest('.chart'); if (!c) return; c.querySelectorAll('.xh,.xd').forEach(el => el.setAttribute('opacity', '0')); const tip = c.querySelector('.tip'); if (tip) tip.hidden = true; }, true);
+
+/* ---------- graphs: compare anything ---------- */
+const SERIES_COLORS = ['#3D4CC4', '#1F7A4D', '#9A6400', '#7A3E9D', '#0E7C86', '#B23A6C', '#8A5A2B', '#5C6966'];
+const graphState = { keys: [], range: 90, mode: 'panels' };
+try { Object.assign(graphState, JSON.parse(localStorage.getItem('pt-graph') || '{}')); } catch {}
+function saveGraphState() { try { localStorage.setItem('pt-graph', JSON.stringify(graphState)); } catch {} }
+
+function availableSeries() {
+  const out = [];
+  const labKeys = [...new Set(labs().map(e => e.marker))];
+  for (const k of labKeys) { const e = labs().find(x => x.marker === k); out.push({ key: 'lab:' + k, group: 'Labs', name: e.name, unit: e.unit || '' }); }
+  for (const p of programs()) {
+    if (logs().some(l => l.programId === p.id)) { out.push({ key: 'dose:' + p.id, group: 'Doses', name: `${p.name} · per dose`, unit: 'mg' }); out.push({ key: 'wk:' + p.id, group: 'Doses', name: `${p.name} · per week`, unit: 'mg/wk' }); }
+    if (pkParams(p) && (logs().some(l => l.programId === p.id) || p.status === 'active')) out.push({ key: 'lvl:' + p.id, group: 'Level in system', name: `${p.name} · in system`, unit: 'mg' });
+  }
+  return out;
+}
+function seriesPoints(key, from, to) {
+  const [kind, id] = key.split(':');
+  if (kind === 'lab') return labs().filter(e => e.marker === id).map(e => ({ t: new Date(e.at + 'T12:00:00').getTime(), v: e.value, note: e.note })).filter(q => q.t >= from && q.t <= to);
+  if (kind === 'dose') return logs().filter(l => l.programId === id && l.doseMg > 0).map(l => ({ t: new Date(l.at).getTime(), v: l.doseMg })).filter(q => q.t >= from && q.t <= to).sort((a, b) => a.t - b.t);
+  if (kind === 'wk') {
+    const byWeek = {};
+    for (const l of logs()) { if (l.programId !== id || !(l.doseMg > 0)) continue; const d = new Date(l.at); const monday = addDays(d, -((d.getDay() + 6) % 7)); monday.setHours(12, 0, 0, 0); const k = monday.getTime(); byWeek[k] = (byWeek[k] || 0) + l.doseMg; }
+    return Object.entries(byWeek).map(([t, v]) => ({ t: +t + 3 * 86400e3, v })).filter(q => q.t >= from && q.t <= to).sort((a, b) => a.t - b.t);
+  }
+  if (kind === 'lvl') {
+    const p = store.data.programs[id]; const k = p && pkParams(p); if (!k) return [];
+    const doses = logs().filter(l => l.programId === id && l.doseMg > 0).map(l => ({ t: new Date(l.at).getTime(), mg: l.doseMg }));
+    const occ = occurrences(p); for (const r of (occ.rows || [])) if ((r.state === 'future' || r.state === 'today') && r.mg != null) doses.push({ t: P(r.iso).getTime(), mg: r.mg });
+    if (!doses.length) return [];
+    const pts = []; const step = Math.max(6 * 3600e3, (to - from) / 400);
+    for (let t = from; t <= to; t += step) pts.push({ t, v: levelAt(doses, t, k) });
+    return pts;
+  }
+  return [];
+}
+function niceStep(range, n) { const raw = range / n; const p = Math.pow(10, Math.floor(Math.log10(raw || 1))); const r = raw / p; return p * (r < 1.5 ? 1 : r < 3.5 ? 2 : r < 7.5 ? 5 : 10); }
+function drawSeriesChart(id, series, from, to, opts = {}) {
+  const W = 900, H = opts.height || 180, L = 52, R = 14, T = 14, B = 26;
+  const x = t => L + (t - from) / (to - from) * (W - L - R);
+  const norm = opts.normalize;
+  const scales = series.map(sr => { const vs = sr.pts.map(q => q.v); if (!vs.length) return { lo: 0, hi: 1 }; let lo = Math.min(...vs), hi = Math.max(...vs); if (norm) return { lo, hi: hi === lo ? lo + 1 : hi }; return { lo: Math.min(0, lo), hi: hi === 0 ? 1 : hi }; });
+  let yMin, yMax;
+  if (norm) { yMin = 0; yMax = 100; } else { yMin = Math.min(...scales.map(s => s.lo)); yMax = Math.max(...scales.map(s => s.hi)); yMax = yMax + (yMax - yMin) * 0.12 || 1; }
+  const yv = (v, i) => norm ? (v - scales[i].lo) / (scales[i].hi - scales[i].lo) * 100 : v;
+  const y = v => T + (1 - (v - yMin) / (yMax - yMin)) * (H - T - B);
+  const step = niceStep(yMax - yMin, 4);
+  let grid = ''; for (let v = Math.ceil(yMin / step) * step; v <= yMax; v += step) grid += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--divider)"/><text x="${L - 6}" y="${y(v) + 3}" font-size="9" text-anchor="end" fill="var(--muted)" font-family="var(--font-mono)">${norm ? n(v, 0) + '%' : n(v, step < 1 ? 2 : step < 10 ? 1 : 0)}</text>`;
+  const span = to - from; const tickEvery = span > 200 * 86400e3 ? 30 : span > 100 * 86400e3 ? 14 : 7;
+  let xt = ''; const first = new Date(from); first.setHours(12, 0, 0, 0);
+  for (let t = first.getTime(); t <= to; t += tickEvery * 86400e3) xt += `<text x="${x(t)}" y="${H - 10}" font-size="9" text-anchor="middle" fill="var(--muted)" font-family="var(--font-body)">${fmtDate(new Date(t))}</text>`;
+  const nowX = x(Date.now()); const nowLine = Date.now() > from && Date.now() < to ? `<line x1="${nowX}" x2="${nowX}" y1="${T}" y2="${y(yMin)}" stroke="var(--muted)" stroke-dasharray="2 3"/>` : '';
+  let marks = '';
+  series.forEach((sr, i) => {
+    const c = sr.color; const pts = sr.pts;
+    if (!pts.length) return;
+    const path = pts.map((q, j) => `${j ? 'L' : 'M'}${x(q.t).toFixed(1)},${y(yv(q.v, i)).toFixed(1)}`).join(' ');
+    if (sr.dense) marks += `<path d="${path}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    else {
+      marks += `<path d="${path}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="${sr.kind === 'dose' ? .45 : 1}"/>`;
+      marks += pts.map(q => `<circle cx="${x(q.t)}" cy="${y(yv(q.v, i))}" r="${sr.kind === 'dose' && pts.length > 40 ? 3 : 5.5}" fill="var(--surface)"/><circle cx="${x(q.t)}" cy="${y(yv(q.v, i))}" r="${sr.kind === 'dose' && pts.length > 40 ? 2 : 4}" fill="${c}"/>`).join('');
+    }
+  });
+  const dots = series.map((sr, i) => `<circle class="xd" data-i="${i}" cx="0" cy="0" r="5" fill="${sr.color}" stroke="var(--surface)" stroke-width="2" opacity="0"/>`).join('');
+  chartData[id] = { multi: true, series: series.map((sr, i) => ({ ...sr, yv: v => yv(v, i) })), L, R, W, x0: from, x1: to, x, y };
+  return `<div class="chart" data-chart="${id}"><svg viewBox="0 0 ${W} ${H}" role="img">${grid}${nowLine}${marks}${xt}
+    <line class="xh" x1="0" x2="0" y1="${T}" y2="${y(yMin)}" stroke="var(--ink)" opacity="0"/>${dots}
+    <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" class="hit"/></svg><div class="tip" hidden></div></div>`;
+}
+function renderGraphs() {
+  const el = $('#graphs'); if (!el) return;
+  const avail = availableSeries();
+  graphState.keys = graphState.keys.filter(k => avail.some(a => a.key === k));
+  const t = today(); const to = addDays(t, graphState.range >= 9999 ? 28 : Math.min(28, Math.round(graphState.range / 4))).getTime();
+  const allT = [...labs().map(e => new Date(e.at + 'T12:00:00').getTime()), ...logs().map(l => new Date(l.at).getTime())];
+  const from = graphState.range >= 9999 ? (allT.length ? Math.min(...allT) - 86400e3 : addDays(t, -90).getTime()) : addDays(t, -graphState.range).getTime();
+  const groups = [...new Set(avail.map(a => a.group))];
+  const picker = groups.map(g => `<div class="gsel-group"><div class="k">${g}</div><div class="checks">${avail.filter(a => a.group === g).map(a => `<label><input type="checkbox" data-gkey="${a.key}" ${graphState.keys.includes(a.key) ? 'checked' : ''}> ${esc(a.name)}${a.unit ? ` <span class="faint">${esc(a.unit)}</span>` : ''}</label>`).join('')}</div></div>`).join('');
+  const ranges = [[30, '30 d'], [90, '90 d'], [180, '6 mo'], [365, '1 yr'], [9999, 'All']];
+  let h = `<div class="section-head"><h2>Graphs</h2><div class="row" style="gap:6px"><span class="segs" style="border-radius:8px">${ranges.map(([v, l]) => `<button class="gbtn" data-grange="${v}" aria-selected="${graphState.range == v}">${l}</button>`).join('')}</span><span class="segs" style="border-radius:8px"><button class="gbtn" data-gmode="panels" aria-selected="${graphState.mode === 'panels'}">Panels</button><button class="gbtn" data-gmode="overlay" aria-selected="${graphState.mode === 'overlay'}">Overlay</button></span></div></div>
+    <div class="card" style="margin-bottom:12px">${avail.length ? `<div class="gsel">${picker}</div>` : '<div class="small muted">Nothing to graph yet. Log doses or lab results and they show up here.</div>'}</div>`;
+  const chosen = graphState.keys.map((k, i) => { const a = avail.find(x => x.key === k); const kind = k.split(':')[0]; return { ...a, color: SERIES_COLORS[i % SERIES_COLORS.length], pts: seriesPoints(k, from, to), dense: kind === 'lvl', kind }; });
+  if (!chosen.length) h += `<div class="empty small">Tick anything above to plot it. Pick several to compare them on the same timeline.</div>`;
+  else if (graphState.mode === 'panels' || chosen.length === 1) {
+    h += `<div class="stack" style="gap:8px">` + chosen.map((sr, i) => {
+      const last = sr.pts[sr.pts.length - 1];
+      return `<div class="card gpanel"><div class="row" style="margin-bottom:2px"><span class="swatch" style="background:${sr.color}"></span><b>${esc(sr.name)}</b><span class="muted small">${esc(sr.unit)}</span><span class="spacer"></span>${last ? `<span class="num" style="font-weight:600">${n(last.v, 2)}</span><span class="small muted">${sr.dense ? 'now' : fmtDate(new Date(last.t))}</span>` : '<span class="small muted">no data in range</span>'}</div>${sr.pts.length ? drawSeriesChart('g-' + i, [sr], from, to, { height: 150 }) : ''}</div>`;
+    }).join('') + `</div>`;
+  } else {
+    const units = [...new Set(chosen.map(c => c.unit))]; const sameUnit = units.length === 1;
+    h += `<div class="card"><div class="row" style="margin-bottom:6px;gap:12px">${chosen.map(sr => `<span class="legend-item"><span class="swatch" style="background:${sr.color}"></span>${esc(sr.name)} <span class="faint">${esc(sr.unit)}</span></span>`).join('')}<span class="spacer"></span><span class="small muted">${sameUnit ? `One axis · ${esc(units[0])}` : 'Mixed units · each series scaled to its own 0–100% range'}</span></div>${drawSeriesChart('g-overlay', chosen, from, to, { height: 260, normalize: !sameUnit })}</div>`;
+  }
+  el.innerHTML = h;
+}
+document.addEventListener('change', async e => {
+  const sel = e.target.closest('[data-orphan-assign]');
+  if (sel) { const v = store.data.vials[sel.dataset.orphanAssign]; if (v && sel.value) { await store.put('vials', v.id, { ...v, programId: sel.value }); toast('Vial moved'); } return; }
+  const cb = e.target.closest('[data-gkey]'); if (!cb) return;
+  const k = cb.dataset.gkey; if (cb.checked) { if (!graphState.keys.includes(k)) graphState.keys.push(k); } else graphState.keys = graphState.keys.filter(x => x !== k);
+  saveGraphState(); renderGraphs();
+});
+document.addEventListener('click', e => {
+  const r = e.target.closest('[data-grange]'); if (r) { graphState.range = +r.dataset.grange; saveGraphState(); renderGraphs(); return; }
+  const m = e.target.closest('[data-gmode]'); if (m) { graphState.mode = m.dataset.gmode; saveGraphState(); renderGraphs(); }
+});
+
+/* ---------- syringe gauge ---------- */
+const ESTERS = [
+  { key:'prop', name:'Testosterone propionate', hl:0.8, abs:0.7, conc:100, note:'Every day or every other day' },
+  { key:'phenylprop', name:'Testosterone phenylpropionate', hl:1.5, abs:1, conc:100, note:'Every 2–3 days' },
+  { key:'isocap', name:'Testosterone isocaproate', hl:4, abs:1.5, conc:100, note:'Twice weekly' },
+  { key:'enan', name:'Testosterone enanthate', hl:4.5, abs:1.5, conc:250, note:'Twice weekly or weekly' },
+  { key:'cyp', name:'Testosterone cypionate', hl:8, abs:2, conc:200, note:'Twice weekly or weekly' },
+  { key:'dec', name:'Testosterone decanoate', hl:8, abs:3, conc:100, note:'Weekly; slow onset' },
+  { key:'undec', name:'Testosterone undecanoate (injectable)', hl:21, abs:7, conc:250, note:'Every 6–12 weeks; approximation' },
+  { key:'sust', name:'Sustanon 250 (blend)', hl:5, abs:1.5, conc:250, note:'Blend of 4 esters; single half-life is an approximation' },
+  { key:'susp', name:'Testosterone suspension (aqueous)', hl:0.5, abs:0.3, conc:100, note:'Daily; no ester' }
+];
+const SYRINGE_SIZES = [[100, '1 cc · 100 units'], [50, '0.5 cc · 50 units'], [30, '0.3 cc · 30 units'], [300, '3 cc (0.1 mL marks)']];
+const NEEDLE_GAUGES = [23, 25, 27, 28, 29, 30, 31, 32, 33];
+const NEEDLE_LENGTHS = [[6, '1/4" (6 mm)'], [8, '5/16" (8 mm)'], [12.7, '1/2" (12.7 mm)'], [16, '5/8" (16 mm)'], [25.4, '1" (25.4 mm)']];
+function lengthLabel(mm) { const f = NEEDLE_LENGTHS.find(([m]) => m === mm); return f ? f[1].split(' ')[0] : mm + ' mm'; }
+function syringeFor(p) {
+  const d = { units: store.settings.syringeUnits || 100, gaugeG: 31, lengthMm: 12.7 };
+  const sp = p && p.syringe ? p.syringe : {};
+  return { units: sp.units || d.units, gaugeG: sp.gaugeG || d.gaugeG, lengthMm: sp.lengthMm || d.lengthMm };
+}
+function syringeLabel(syr) { return `${syr.units >= 300 ? `${syr.units / 100} cc syringe` : `${syr.units}-unit · ${syr.units / 100} cc`} · ${syr.gaugeG}G × ${lengthLabel(syr.lengthMm)}`; }
+function gauge(units, W = 380, syr = null) {
+  syr = syr || syringeFor(null);
+  const max = syr.units;
+  const needlePx = Math.round(syr.lengthMm * (W >= 600 ? 3.4 : 2.2));
+  const needleW = Math.max(0.6, 0.6 + (33 - syr.gaugeG) * 0.18);
+  const H = 64, bx0 = 8 + needlePx + 12, bx1 = W - 80, by0 = 22, by1 = 40;
+  const px = u => bx0 + (Math.min(Math.max(u, 0), max) / max) * (bx1 - bx0);
+  const over = Number.isFinite(units) && units > max;
+  const has = Number.isFinite(units) && units > 0;
+  const labelEvery = max >= 100 ? 10 : 5;
+  const minor = W >= 600 ? 1 : 2;
+  let ticks = '';
+  for (let u = 0; u <= max; u += minor) {
+    const major = u % labelEvery === 0, mid = u % 5 === 0;
+    ticks += `<line x1="${px(u)}" x2="${px(u)}" y1="${by0}" y2="${by0 + (major ? 8 : mid ? 5 : 3)}" stroke="var(--muted)" stroke-width="${major ? 1.2 : 0.8}" opacity="${major || mid ? 1 : .7}"/>`;
+    if (major) {
+      ticks += `<text x="${px(u)}" y="${by0 - 4}" font-size="8" text-anchor="middle" fill="var(--muted)" font-family="var(--font-mono)">${u}</text>`;
+      ticks += `<text x="${px(u)}" y="${by1 + 10}" font-size="8" text-anchor="middle" fill="var(--faint)" font-family="var(--font-mono)">${(u / 100).toFixed(2).replace(/^0/, '')}</text>`;
+    }
+  }
+  const fx = has ? px(units) : bx0;
+  const liquid = has ? `<rect x="${bx0}" y="${by0 + 1}" width="${fx - bx0}" height="${by1 - by0 - 2}" fill="${over ? 'var(--bad-soft)' : 'var(--accent-soft)'}"/>` : '';
+  const stopper = `<rect x="${fx - 1.5}" y="${by0 + 1}" width="3" height="${by1 - by0 - 2}" rx="1" fill="${over ? 'var(--bad)' : 'var(--accent)'}" opacity=".55"/>`;
+  const rod = `<rect x="${fx + 2}" y="${(by0 + by1) / 2 - 3}" width="${W - 30 - (fx + 2)}" height="5" rx="2" fill="var(--faint)"/><rect x="${W - 30}" y="${by0 - 3}" width="7" height="${by1 - by0 + 6}" rx="2" fill="var(--muted)"/>`;
+  const readout = has ? `${n(units, 1)} units · ${n(units / 100, 2)} cc` : 'no dose';
+  return `<div class="gauge" aria-label="Draw ${readout} on a ${max}-unit syringe"><svg viewBox="0 0 ${W} ${H}" role="img">
+    <line x1="${bx0 - 12 - needlePx}" x2="${bx0 - 12}" y1="${(by0 + by1) / 2}" y2="${(by0 + by1) / 2}" stroke="var(--muted)" stroke-width="${needleW}"/>
+    <rect x="${bx0 - 12}" y="${(by0 + by1) / 2 - 4}" width="12" height="8" rx="2" fill="var(--surface-2)" stroke="var(--border)"/>
+    <rect x="${bx0}" y="${by0}" width="${bx1 - bx0}" height="${by1 - by0}" rx="3" fill="var(--surface)" stroke="var(--border)"/>
+    ${liquid}${ticks}${stopper}${rod}
+    <rect x="${bx1 + 2}" y="${by0 - 2}" width="4" height="${by1 - by0 + 4}" rx="1" fill="var(--border)"/>
+    <text x="${bx0}" y="${by0 - 14}" font-size="7" fill="var(--faint)" font-family="var(--font-body)" letter-spacing=".06em">UNITS</text>
+    <text x="${bx0}" y="${by1 + 21}" font-size="7" fill="var(--faint)" font-family="var(--font-body)" letter-spacing=".06em">CC (mL)</text>
+    <text x="${(bx0 + bx1) / 2}" y="${by1 - 2}" font-size="6.5" text-anchor="middle" fill="var(--faint)" font-family="var(--font-body)">${syringeLabel(syr)}</text>
+    ${over ? `<text x="${W - 4}" y="${by1 + 21}" font-size="8" text-anchor="end" fill="var(--bad)" font-family="var(--font-body)">Dose exceeds one syringe</text>` : ''}
+  </svg></div>`;
+}
+
+/* ---------- dose-by-dose schedule ---------- */
+function programEnd(p) {
+  if (p.endDate) return P(p.endDate);
+  if (p.cycle && p.cycle.onDays > 0 && p.cycle.count && p.startDate) { const period = p.cycle.onDays + Math.max(0, p.cycle.offDays || 0); return addDays(P(p.startDate), (p.cycle.count - 1) * period + p.cycle.onDays - 1); }
+  if (p.cycle && p.cycle.onDays > 0) return null;
+  if (p.doseMode === 'ramp' && p.phases?.length && p.startDate) { const last = p.phases[p.phases.length - 1]; if (last.to != null) return addDays(P(p.startDate), last.to * 7 - 1); }
+  return null;
+}
+function isSkipped(p, d) { return !!(p.skipped && p.skipped[ISO(d)]); }
+function occurrences(p) {
+  if (!p.startDate) return [];
+  const t = today(); const start = P(p.startDate); const end = programEnd(p);
+  const from = end ? start : new Date(Math.max(start, addDays(t, -28)));
+  const to = end || addDays(t, 56);
+  const out = [];
+  for (let d = new Date(from); d <= to && out.length < 200; d = addDays(d, 1)) {
+    if (!isDue(p, d)) continue;
+    const mg = doseFor(p, d); const done = logsOn(p, d); const skipped = isSkipped(p, d);
+    const days = daysBetween(t, d);
+    const state = done.length ? 'done' : skipped ? 'skipped' : days === 0 ? 'today' : days < 0 ? 'late' : 'future';
+    out.push({ d, iso: ISO(d), mg, week: weekOf(p, d), done, skipped, state });
+  }
+  return { rows: out, openEnded: !end, trimmedPast: !end && from > start };
+}
+function vialCheck(p, opts = {}) {
+  const v = activeVial(p); if (!v) return [];
+  const vs = vialStats(v); const occ = occurrences(p); const end = programEnd(p);
+  const planned = occ.rows.filter(r => r.state !== 'done' && r.state !== 'skipped' && r.mg != null).reduce((a, r) => a + r.mg, 0);
+  const msgs = [];
+  if (end && planned > vs.remaining + 1e-9) msgs.push(`${v.label || 'The vial'} has ~${n(Math.max(0, vs.remaining), 1)} mg left but ${n(planned, 1)} mg is still planned — another vial will be needed${stockVials(p).length ? ` (${stockVials(p).length} in stock, not mixed)` : ''}.`);
+  if (end && vs.discardOn && vs.discardOn < end) msgs.push(`${v.label || 'The vial'} should be discarded ${fmtDate(vs.discardOn)}, before the schedule ends ${fmtDate(end)}.`);
+  if (!end && vs.remaining > 0) { const nextMg = occ.rows.filter(r => r.state === 'today' || r.state === 'future').slice(0, 1)[0]; if (nextMg && nextMg.mg > vs.remaining) msgs.push(`${v.label || 'The vial'} has ~${n(Math.max(0, vs.remaining), 1)} mg left, less than the next ${n(nextMg.mg, 2)} mg dose.`); }
+  return msgs;
+}
+function vialPlan(p, rows) {
+  const queue = programVials(p).map(v => { const st = vialStats(v); if (v.mixedDate) { if (st.expired || st.remaining <= 1e-9) return null; return { label: v.label || 'Vial', remaining: st.remaining, discardOn: st.discardOn, kind: 'cur' }; } return { label: v.label || 'Stock vial', remaining: v.totalMg || 0, discardOn: null, kind: 'stock' }; }).filter(Boolean);
+  let qi = 0;
+  return rows.map(r => {
+    if (r.state === 'done') { const v = store.data.vials[r.done[0].vialId]; return { label: v ? (v.label || 'Vial') : '—', kind: 'done' }; }
+    if (r.state === 'skipped' || r.mg == null) return { label: '', kind: 'none' };
+    while (qi < queue.length && (queue[qi].remaining < r.mg - 1e-9 || (queue[qi].discardOn && r.d > queue[qi].discardOn))) qi++;
+    if (qi < queue.length) { queue[qi].remaining -= r.mg; return { label: queue[qi].label, kind: queue[qi].kind }; }
+    return { label: 'New vial needed', kind: 'need' };
+  });
+}
+function vialCell(a) {
+  if (a.kind === 'need') return `<span class="chip warn">${a.label}</span>`;
+  if (a.kind === 'stock') return `<span class="chip accent" title="In stock, mix before this dose">${esc(a.label)} · mix</span>`;
+  if (a.kind === 'done') return `<span class="muted">${esc(a.label)}</span>`;
+  return esc(a.label);
+}
+function doseScheduleTable(p, c, opts = {}) {
+  const occ = occurrences(p); if (!occ.rows || !occ.rows.length) return opts.bare ? '<div class="card muted small">No scheduled doses yet. Set a start date on the program.</div>' : '';
+  const vp = vialPlan(p, occ.rows);
+  const rows = occ.rows.map((r, i) => {
+    const dr = Number.isFinite(c.conc) && r.mg != null ? drawFor(r.mg, c.conc) : null;
+    let status, actions;
+    if (r.state === 'done') { status = `<span class="chip good">✓ ${fmtTime(r.done[0].at)}${r.done[0].site ? ' · ' + esc(r.done[0].site) : ''}</span>`; actions = ''; }
+    else if (r.state === 'skipped') { status = `<span class="chip plain">Skipped</span>`; actions = `<button class="btn sm ghost" data-action="unskip" data-id="${p.id}" data-date="${r.iso}">Undo</button>`; }
+    else {
+      status = r.state === 'today' ? '<span class="chip warn">Today</span>' : r.state === 'late' ? '<span class="chip bad">Missed</span>' : '';
+      actions = `<button class="btn sm ${r.state === 'today' ? 'good' : ''}" data-action="complete" data-id="${p.id}" data-date="${r.iso}" ${r.mg == null ? 'disabled' : ''}>Complete</button><button class="btn sm ghost" data-action="skip" data-id="${p.id}" data-date="${r.iso}">Skip</button>`;
+    }
+    return `<tr class="occ ${r.state}"><td><b>${DOW[r.d.getDay()]} ${fmtDate(r.d)}</b></td><td class="muted">Week ${r.week}</td><td class="num">${r.mg != null ? n(r.mg, 2) + ' mg' : '—'}</td><td class="num">${dr ? n(dr.ml, 2) + ' cc' : '—'}</td><td class="num">${dr ? n(dr.units, 1) + ' u' : '—'}</td><td>${vialCell(vp[i])}</td><td>${status}</td><td class="actions">${actions}</td></tr>`;
+  }).join('');
+  const open = p.status === 'active';
+  const note = occ.openEnded ? (occ.trimmedPast ? 'Open-ended schedule: showing the last 4 weeks and the next 8.' : 'Open-ended schedule: showing the next 8 weeks.') : '';
+  if (opts.bare) return `${note ? `<div class="small muted" style="margin:0 0 8px">${note}</div>` : ''}<div class="table-wrap"><table><thead><tr><th>Date</th><th>Week</th><th class="num">Dose</th><th class="num">Draw</th><th class="num">Units</th><th>Vial</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `<details class="occ-wrap" ${open ? 'open' : ''} style="margin-top:12px"><summary>Dose-by-dose schedule (${occ.rows.length})</summary>${note ? `<div class="small muted" style="margin:6px 0">${note}</div>` : ''}<div class="table-wrap" style="margin-top:6px"><table><thead><tr><th>Date</th><th>Week</th><th class="num">Dose</th><th class="num">Draw</th><th class="num">Units</th><th>Vial</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
+}
+async function completeDose(pid, iso) {
+  const p = store.data.programs[pid]; if (!p) return;
+  const d = P(iso); const mg = doseFor(p, d); if (mg == null) { toast('No dose set for that date'); return; }
+  const v = activeVial(p); const vs = v ? vialStats(v) : null;
+  const dr = v && Number.isFinite(vs.conc) ? drawFor(mg, vs.conc) : null;
+  const isToday = iso === ISO(new Date());
+  const at = isToday ? new Date() : new Date(iso + 'T12:00:00');
+  await store.put('logs', uid(), { programId: pid, vialId: v ? v.id : null, at: at.toISOString(), doseMg: mg, units: dr ? dr.units : null, ml: dr ? dr.ml : null, site: isToday ? (suggestSite(p) || '') : '', note: isToday ? '' : 'Entered after the fact', createdAt: new Date().toISOString() });
+  toast(`Logged ${n(mg, 2)} mg for ${fmtDate(d)}`);
+}
+async function skipDose(pid, iso) {
+  const p = store.data.programs[pid]; if (!p) return;
+  const skipped = { ...(p.skipped || {}), [iso]: true };
+  const updated = { ...p, skipped };
+  const end = programEnd(updated);
+  const probe = end ? { ...updated, endDate: ISO(addDays(end, 90)) } : null;
+  const newEnd = end ? nextDue(probe, end) : null;
+  if (!newEnd) { await store.put('programs', pid, updated); toast(`Skipped ${fmtDate(P(iso))}`); return; }
+  const extended = { ...updated, endDate: ISO(newEnd) };
+  const warnings = vialCheck(extended);
+  openModal(`<h2>Skip ${DOW[P(iso).getDay()]} ${fmtDate(P(iso))}?</h2>
+    <p class="small muted" style="margin-bottom:10px">Just skip it, or skip and push one more dose onto the end so you still get the full course. Pushing moves the end from ${fmtDate(end, true)} to <b>${DOW[newEnd.getDay()]} ${fmtDate(newEnd, true)}</b>.</p>
+    ${warnings.length ? `<div class="note-box" style="background:var(--warn-soft);color:var(--ink)">${warnings.map(w => '⚠ ' + esc(w)).join('<br>')}</div>` : ''}
+    <div class="modal-actions"><button type="button" class="btn ghost" data-action="close">Cancel</button><span class="spacer"></span><button type="button" class="btn" id="skipOnly">Just skip</button><button type="button" class="btn primary" id="skipPush">Skip + push a dose to the end</button></div>`);
+  $('#skipOnly').addEventListener('click', async () => { closeModal(); await store.put('programs', pid, updated); toast(`Skipped ${fmtDate(P(iso))}`); });
+  $('#skipPush').addEventListener('click', async () => { closeModal(); await store.put('programs', pid, extended); toast(`Skipped · schedule now ends ${fmtDate(newEnd)}`); });
+}
+async function unskipDose(pid, iso) {
+  const p = store.data.programs[pid]; if (!p) return;
+  const skipped = { ...(p.skipped || {}) }; delete skipped[iso];
+  await store.put('programs', pid, { ...p, skipped }); toast('Skip removed');
+}
+
+function miniSyringe(units, syr = null) {
+  const max = (syr || syringeFor(null)).units;
+  if (!Number.isFinite(units)) return '';
+  const W = 150, H = 18, x0 = 2, x1 = 148;
+  const px = u => x0 + (Math.min(Math.max(u,0), max) / max) * (x1 - x0);
+  const over = units > max; const fx = px(units);
+  let ticks = ''; for (let u = 0; u <= max; u += max >= 100 ? 10 : 5) ticks += `<line x1="${px(u)}" x2="${px(u)}" y1="3" y2="6" stroke="var(--muted)" stroke-width="1"/>`;
+  return `<svg class="mini" viewBox="0 0 ${W} ${H}" role="img" aria-label="${n(units,1)} units"><rect x="${x0}" y="3" width="${x1-x0}" height="12" rx="3" fill="var(--surface)" stroke="var(--border)"/><rect x="${x0}" y="4" width="${Math.max(0, fx-x0)}" height="10" rx="2" fill="${over?'var(--bad-soft)':'var(--accent-soft)'}"/>${ticks}<rect x="${fx-1}" y="4" width="2" height="10" fill="${over?'var(--bad)':'var(--accent)'}" opacity=".7"/></svg>`;
+}
+
+/* ---------- render ---------- */
+let currentView = 'today', detailId = null;
+try { currentView = localStorage.getItem('pt-view') || 'today'; detailId = localStorage.getItem('pt-detail') || null; } catch {}
+if (currentView === 'program' && !detailId) currentView = 'today';
+function showView(v, id, opts = {}) {
+  const changed = v !== currentView || (id && id !== detailId);
+  currentView = v; if (id) detailId = id;
+  try { localStorage.setItem('pt-view', v); localStorage.setItem('pt-detail', detailId || ''); } catch {}
+  if (!opts.fromHistory && changed) { try { history.pushState({ view: v, id: v === 'program' ? detailId : null }, ''); } catch {} }
+  syncTabs(); $$('.view').forEach(x => x.classList.toggle('active', x.id === 'view-' + v));
+}
+window.addEventListener('popstate', e => {
+  const st = e.state; if (!st || !st.view) { showView('today', null, { fromHistory: true }); return; }
+  showView(st.view, st.id || null, { fromHistory: true }); if (st.view === 'program') renderProgramDetail(); window.scrollTo(0, 0);
+});
+try { history.replaceState({ view: currentView, id: currentView === 'program' ? detailId : null }, ''); } catch {}
+function syncTabs() { $$('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.view === currentView && (currentView !== 'program' || t.dataset.id === detailId)))); }
+function renderTabs() {
+  const t = today(); const ps = programs();
+  const order = { active:0, planned:1, paused:2, done:3 };
+  ps.sort((a,b) => (order[a.status] ?? 9) - (order[b.status] ?? 9) || (a.order ?? 0) - (b.order ?? 0));
+  const due = ps.filter(p => p.status === 'active' && isDue(p, t) && !logsOn(p, t).length && !isSkipped(p, t)).length;
+  const expiring = vials().filter(v => !v.discarded).map(vialStats).filter(x => x.daysLeft != null && x.daysLeft <= 5).length;
+  let h = `<button class="tab" role="tab" data-view="today">Today${due ? `<span class="badge">${due}</span>` : ''}</button>`;
+  for (const p of ps) {
+    const pending = p.status === 'active' && isDue(p, t) && !logsOn(p, t).length && !isSkipped(p, t);
+    const missed = p.status === 'active' && missedDates(p).length > 0;
+    h += `<button class="tab${p.status === 'done' ? ' done-tab' : ''}" role="tab" data-view="program" data-id="${p.id}">${esc(p.name)}${pending ? '<span class="mark due" title="Due today"></span>' : missed ? '<span class="mark missed" title="Missed doses"></span>' : ''}</button>`;
+  }
+  h += `<button class="tab" role="tab" data-view="plan">Logs</button>`;
+  $('#tabs').innerHTML = h; syncTabs();
+}
+function render() {
+  showView(currentView);
+  $('#todayLabel').textContent = new Intl.DateTimeFormat('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' }).format(new Date());
+  if (!store.ready) { $('#today').innerHTML = '<div class="empty">Loading your programs…</div>'; return; }
+  renderTabs(); renderToday(); renderPlanSummary(); renderProgramDetail(); renderVials(); renderLog(); $('#labs').innerHTML = labsSection({}); renderGraphs(); renderOrphans();
+}
+
+function statusChip(p) {
+  const m = { active:['good','Active'], planned:['plain','Planned'], paused:['warn','Paused'], done:['plain','Completed'] };
+  const [c, l] = m[p.status] || ['plain', p.status]; return `<span class="chip ${c}">${l}</span>`;
+}
+
+function dueTile(p, d) {
+  const mg = doseFor(p, d); const c = concFor(p); const v = c.vial; const vs = c.vs;
+  const dr = mg != null && Number.isFinite(c.conc) ? drawFor(mg, c.conc) : null;
+  const done = logsOn(p, d); const skipped = !done.length && isSkipped(p, d);
+  const site = suggestSite(p);
+  let vialLine;
+  if (!v) vialLine = stockVials(p).length ? `<span class="chip warn">Vial in stock, not mixed</span> <button class="btn sm primary" data-action="mix-vial" data-id="${stockVials(p)[0].id}">Mix now</button>` : `<span class="chip warn">No vial on file</span>`;
+  else vialLine = `${esc(v.label)}${vs.expired ? ' · <span class="chip bad">expired</span>' : (vs.daysLeft != null && vs.daysLeft <= 5 ? ` · <span class="chip warn">${vs.daysLeft} d left</span>` : '')}${mg != null && vs.remaining < mg ? ' · <span class="chip warn">not enough left</span>' : ''}`;
+  const status = done.length ? `<span class="chip good">✓ ${fmtTime(done[0].at)}${done[0].site ? ' · ' + esc(done[0].site) : ''}</span>` : skipped ? '<span class="chip plain">Skipped</span>' : '<span class="chip warn">Due</span>';
+  const stats = dr
+    ? `<div class="segs"><div class="seg primary"><div class="k">Units</div><div class="v">${n(dr.units,1)} <small>u</small></div></div><div class="seg"><div class="k">Draw</div><div class="v">${n(dr.ml,2)} <small>cc</small></div></div><div class="seg"><div class="k">Dose</div><div class="v">${n(mg,2)} <small>mg</small></div></div></div>`
+    : mg != null ? `<div class="segs"><div class="seg primary"><div class="k">Dose</div><div class="v">${n(mg,2)} <small>mg</small></div></div></div><div class="seg-note">add a vial for units</div>` : `<div class="small muted">No dose set</div>`;
+  const actions = done.length ? `<button class="btn sm ghost" data-action="log" data-id="${p.id}">Log another</button>`
+    : skipped ? `<button class="btn sm ghost" data-action="unskip" data-id="${p.id}" data-date="${ISO(d)}">Undo skip</button>`
+    : `<button class="btn ghost" data-action="skip" data-id="${p.id}" data-date="${ISO(d)}">Skip</button><button class="btn good" data-action="complete" data-id="${p.id}" data-date="${ISO(d)}" ${mg == null ? 'disabled' : ''}>Complete</button>`;
+  return `<article class="card due-row ${done.length ? 'done' : ''}">
+    <div class="who inline"><h3><a href="#" data-action="open-program" data-id="${p.id}">${esc(p.name)}</a></h3>${status}<span class="line">${vialLine}${site && !done.length && !skipped ? ` · Site: <b>${esc(site)}</b>` : ''}</span></div>
+    <div class="stats">${stats}</div>
+    <div class="syr">${dr ? gauge(dr.units, 820, syringeFor(p)) : ''}</div>
+    <div class="acts">${actions}</div>
+  </article>`;
+}
+
+function scrollStrips(root) {
+  $$('.days', root).forEach(box => {
+    const target = box.querySelector('.dd.due, .dd.future') || box.querySelector('.dd.today') || box.querySelector('.dd:last-child');
+    if (!target) return;
+    box.scrollLeft = Math.max(0, target.offsetLeft - box.clientWidth / 2 + target.offsetWidth / 2);
+  });
+}
+function dayStrip(p) {
+  const t = today(); const start = P(p.startDate); if (!start) return '';
+  const end = programEnd(p);
+  const from = new Date(Math.max(start, addDays(t, -28)));
+  const to = end && end < addDays(t, 28) ? end : addDays(t, 28);
+  let h = ''; let lastMonth = -1;
+  for (let d = new Date(from); d <= to; d = addDays(d, 1)) {
+    const got = logsOn(p, d).length > 0; const due = isDue(p, d); const skipped = isSkipped(p, d);
+    const ci = cycleInfo(p, d);
+    if (ci && !ci.on && !ci.finished && ci.pos === p.cycle.onDays && ci.offDays > 0) h += `<span class="gap" title="Off ${fmtDate(d)} – ${fmtDate(addDays(ci.nextStart, -1))}"><i>off ${ci.offDays % 7 === 0 ? ci.offDays / 7 + ' wk' : ci.offDays + ' d'}</i></span>`;
+    if (!due && !got) continue;
+    const i = daysBetween(t, d);
+    let c = 'dd'; if (got) c += ' done'; else if (skipped) c += ' skipped'; else if (i < 0) c += ' missed'; else if (i === 0) c += ' due'; else c += ' future';
+    if (i === 0) c += ' today';
+    const showMonth = d.getMonth() !== lastMonth; lastMonth = d.getMonth();
+    const title = `${DOW[d.getDay()]} ${fmtDate(d)}${got ? ' · logged' : skipped ? ' · skipped' : i < 0 ? ' · missed' : i === 0 ? ' · due today' : ' · scheduled'}`;
+    h += `<span class="${c}" title="${title}">${showMonth ? `<i>${new Intl.DateTimeFormat('en-US', { month: 'short' }).format(d)}</i>` : ''}<b></b><small>${d.getDate()}</small></span>`;
+  }
+  return `<div class="days"><div class="ddots">${h}</div></div>`;
+}
+
+function doseRange(p) {
+  const mgs = p.doseMode === 'ramp' ? (p.phases || []).map(x => x.mg).filter(x => x != null) : (p.doseMg != null ? [p.doseMg] : []);
+  if (!mgs.length) return null;
+  return { lo: perShot(p, Math.min(...mgs)), hi: perShot(p, Math.max(...mgs)), weeklyLo: p.doseBasis === 'weekly' ? Math.min(...mgs) : null, weeklyHi: p.doseBasis === 'weekly' ? Math.max(...mgs) : null };
+}
+function rangeText(lo, hi, d) { return lo === hi ? n(lo, d) : `${n(lo, d)}–${n(hi, d)}`; }
+function planSummary(p) {
+  const t = today(); const c = concFor(p); const v = c.vial;
+  const wk = p.startDate ? weekOf(p, t) : null;
+  const nd = p.status === 'active' ? (isDue(p, t) ? t : nextDue(p, t)) : null;
+  const mg = nd ? doseFor(p, nd) : null;
+  const dr = mg != null && Number.isFinite(c.conc) ? drawFor(mg, c.conc) : null;
+  const missed = p.status === 'active' ? missedDates(p).length : 0;
+  const warns = p.status === 'active' ? vialCheck(p) : [];
+  const complete = p.status === 'active' && scheduleComplete(p, t);
+  const end = programEnd(p);
+  let meta = [];
+  if (p.status === 'active') {
+    if (complete) meta.push(['Status', 'Schedule finished']);
+    else meta.push(['Next', nd ? (daysBetween(t, nd) === 0 ? 'Today' : `${DOW[nd.getDay()]} ${fmtDate(nd)} <span class="muted">(${daysBetween(t, nd)} d)</span>`) : '—']);
+    if (mg != null) meta.push(['Dose', `<span class="num">${n(mg,2)} mg</span>`]);
+    if (p.doseBasis === 'weekly' && p.doseMode !== 'ramp' && p.doseMg != null) meta.push(['Weekly', `<span class="num">${n(p.doseMg,1)} mg</span> <span class="muted">· ${n(shotsPerWeek(p),1)}×</span>`]);
+    const ci = cycleInfo(p, t);
+    if (wk && (!ci || ci.on)) meta.push(['Week', String(wk)]);
+    if (ci) meta.push(['Cycle', ci.finished ? 'Finished' : ci.on ? `${ci.idx + 1}${ci.count ? '/' + ci.count : ''} · on until ${fmtDate(ci.onEnd)}` : `Off · back ${fmtDate(ci.nextStart)}`]);
+    if (end) meta.push(['Ends', fmtDate(end)]);
+  }
+  else if (p.status === 'planned') meta.push(['Starts', p.startDate ? fmtDate(P(p.startDate), true) : 'Not scheduled']);
+  else if (p.status === 'paused') meta.push(['Status', 'Paused']);
+  else meta.push(['Finished', end ? fmtDate(end, true) : 'Completed']);
+  const metaHtml = `<div class="meta">${meta.map(([k, v]) => `<div class="m"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('')}</div>`;
+  const rg = doseRange(p);
+  const stats = rg ? `<div class="segs-cap">Plan overview</div><div class="segs"><div class="seg primary"><div class="k">Dose</div><div class="v">${rangeText(rg.lo, rg.hi, 2)} <small>mg</small></div></div>` + (Number.isFinite(c.conc)
+    ? `<div class="seg"><div class="k">Draw</div><div class="v">${rangeText(drawFor(rg.lo, c.conc).ml, drawFor(rg.hi, c.conc).ml, 2)} <small>cc</small></div></div><div class="seg"><div class="k">Units</div><div class="v">${rangeText(drawFor(rg.lo, c.conc).units, drawFor(rg.hi, c.conc).units, 1)} <small>u</small></div></div></div>`
+    : `</div><div class="seg-note">add a vial for cc and units</div>`) : '';
+  return `<article class="card due-row plan-row click ${p.status}" data-action="open-program" data-id="${p.id}" role="button" tabindex="0">
+    <div class="who"><div class="title"><h3>${esc(p.name)}</h3>${statusChip(p)}${missed ? `<span class="chip bad">${missed} missed</span>` : ''}${warns.length ? '<span class="chip warn">vial</span>' : ''}<span class="line inline-meta">${freqLabel(p)}${v ? ` · ${esc(v.label)} · ${c.vs.expired ? '<span class="chip bad">expired</span>' : (c.vs.daysLeft != null ? c.vs.daysLeft + ' d left' : '')}` : (p.status === 'active' ? (stockVials(p).length ? ' · <span class="chip warn">vial not mixed</span>' : ' · <span class="chip warn">no vial</span>') : '')}</span></div>
+</div>
+    <div class="mid">${metaHtml}</div>
+    <div class="stats">${stats}</div>
+    <div class="acts"><span class="faint">›</span></div>
+    ${p.status === 'active' ? dayStrip(p) : ''}
+  </article>`;
+}
+
+function renderToday() {
+  const t = today(); const ps = programs();
+  const active = ps.filter(p => p.status === 'active');
+  const due = active.filter(p => isDue(p, t));
+  const doneCount = due.filter(p => logsOn(p, t).length || isSkipped(p, t)).length;
+  const missed = active.reduce((a,p) => a + missedDates(p).length, 0);
+  const expiring = vials().filter(v => !v.discarded).map(vialStats).filter(s => s.daysLeft != null && s.daysLeft <= 5).length;
+
+  let h = `<div class="section-head"><h2>Today</h2><span class="hint">${new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric'}).format(new Date())}</span></div><div class="strip">
+    <div class="tile"><div class="k">Due today</div><div class="v">${due.length}</div></div>
+    <div class="tile good"><div class="k">Done</div><div class="v">${doneCount}</div></div>
+    <div class="tile ${missed ? 'bad' : ''}"><div class="k">Missed · 14 d</div><div class="v">${missed}</div></div>
+    <div class="tile ${expiring ? 'warn' : ''}"><div class="k">Vials expiring</div><div class="v">${expiring}</div></div>
+  </div>`;
+
+  if (!ps.length) {
+    h += `<div class="empty"><p style="font-size:16px;font-weight:700;color:var(--ink)">No programs yet</p><p style="margin:6px 0 14px">Add a program with its dose schedule, then the vial you're drawing from.</p><button class="btn primary" data-action="add-program">Add a program</button></div>`;
+    $('#today').innerHTML = h; return;
+  }
+  h += `<div class="section"><div class="section-head"><h3>Due today</h3><span class="hint">${due.length ? 'Complete after you inject' : 'Nothing scheduled'}</span></div>`;
+  h += due.length ? `<div class="stack">${due.map(p => dueTile(p, t)).join('')}</div>` : `<div class="card muted small">No doses due today.</div>`;
+  h += `</div>`;
+  $('#today').innerHTML = h;
+}
+
+function renderPlanSummary() {
+  const ps = programs();
+  const order = { active:0, planned:1, paused:2, done:3 };
+  ps.sort((a,b) => (order[a.status] ?? 9) - (order[b.status] ?? 9) || (a.order ?? 0) - (b.order ?? 0));
+  let h = `<div class="section-head"><h2>Plan</h2><button class="btn sm primary" data-action="add-program">+ Add program</button></div>`;
+  h += ps.length ? `<div class="stack">${ps.map(planSummary).join('')}</div>` : `<div class="empty">No programs yet.</div>`;
+  $('#programs').innerHTML = h;
+  scrollStrips($('#programs'));
+}
+
+function adherenceDots(p) {
+  const t = today(); let h = '';
+  for (let i=13;i>=0;i--) {
+    const d = addDays(t, -i); const due = isDue(p, d) && !isSkipped(p, d); const got = logsOn(p, d).length > 0;
+    let c = 'dot'; if (got) c += ' done'; else if (due && i > 0) c += ' missed'; else if (!due) c += ' off';
+    if (i === 0) c += ' today';
+    h += `<span class="${c}" title="${fmtDate(d)}${due ? (got ? ' · logged' : (i===0 ? ' · due' : ' · missed')) : (got ? ' · logged (extra)' : '')}"></span>`;
+  }
+  return h;
+}
+function concFor(p) {
+  const v = activeVial(p); const vs = v ? vialStats(v) : null;
+  if (vs && Number.isFinite(vs.conc)) return { conc: vs.conc, src: `${esc(v.label || 'current vial')} · ${n(vs.conc,2)} mg/mL`, vial: v, vs };
+  if (p.recipe?.totalMg > 0 && p.recipe?.waterMl > 0) return { conc: p.recipe.totalMg / p.recipe.waterMl, src: `default recipe ${n(p.recipe.totalMg)} mg + ${n(p.recipe.waterMl)} mL = ${n(p.recipe.totalMg/p.recipe.waterMl,2)} mg/mL`, vial: null, vs: null };
+  return { conc: NaN, src: 'no vial or recipe yet', vial: null, vs: null };
+}
+function drawCells(mg, conc, syr) {
+  const dr = Number.isFinite(conc) && mg != null ? drawFor(mg, conc) : null;
+  return `<td class="num"><b>${mg != null ? n(mg,2) + ' mg' : '—'}</b></td><td class="num">${dr ? n(dr.ml,2) + ' cc' : '—'}</td><td class="num">${dr ? n(dr.units,1) + ' u' : '—'}</td><td>${dr ? miniSyringe(dr.units, syr) : ''}</td>`;
+}
+function planTable(p, c) {
+  const start = P(p.startDate); const t = today(); const wk = start ? weekOf(p, t) : null;
+  let rows = '';
+  const cyc = p.cycle && p.cycle.onDays > 0 && start ? (cycleInfo(p, t) || { cycleStart: start }) : null;
+  if (p.doseMode === 'ramp' && p.phases?.length) {
+    for (const ph of p.phases) {
+      const base = cyc ? cyc.cycleStart : start;
+      const from = base ? addDays(base, (ph.from-1)*7) : null; const to = base && ph.to != null ? addDays(base, ph.to*7 - 1) : (cyc ? cyc.onEnd || null : (start && programEnd(p) ? programEnd(p) : null));
+      const cur = wk != null && p.status === 'active' && wk >= ph.from && (ph.to == null || wk <= ph.to);
+      const label = ph.to == null ? `Week ${ph.from}+` : (ph.from === ph.to ? `Week ${ph.from}` : `Weeks ${ph.from}–${ph.to}`);
+      rows += `<tr class="${cur ? 'current' : ''}"><td>${cur ? '<span class="chip accent">now</span> ' : ''}${label}</td><td class="muted">${from ? fmtDate(from) + (to ? ' – ' + fmtDate(to, true) : ' onward') : 'set a start date'}</td>${drawCells(perShot(p, ph.mg), c.conc, syringeFor(p))}</tr>`;
+    }
+  } else if (p.doseMg != null) {
+    rows = `<tr class="${p.status === 'active' ? 'current' : ''}"><td>Every dose</td><td class="muted">${start ? fmtDate(start, true) + (p.endDate ? ' – ' + fmtDate(P(p.endDate), true) : ' onward') : 'set a start date'}</td>${drawCells(perShot(p, p.doseMg), c.conc, syringeFor(p))}</tr>`;
+  } else return `<div class="small muted">No dose set yet.</div>`;
+  return `<div class="table-wrap"><table><thead><tr><th>Phase</th><th>Dates</th><th class="num">Dose</th><th class="num">Draw</th><th class="num">Units</th><th>Syringe</th></tr></thead><tbody>${rows}</tbody></table></div><div class="small muted" style="margin-top:6px">${p.cycle && p.cycle.onDays > 0 ? `Cycle: ${cycleLabel(p)} · phases restart each cycle. ` : ''}Draw and units based on ${c.src}.${p.doseBasis === 'weekly' ? ` Doses entered as weekly totals, split over ${n(shotsPerWeek(p),1)} shots per week.` : ''}</div>`;
+}
+function planCard(p, opts = {}) {
+  const t = today(); const c = concFor(p); const v = c.vial;
+  const wk = p.startDate ? weekOf(p, t) : null;
+  const mgNow = p.status === 'active' ? doseFor(p, t) : null;
+  const drNow = mgNow != null && Number.isFinite(c.conc) ? drawFor(mgNow, c.conc) : null;
+  const nd = p.status === 'active' ? (isDue(p, t) ? t : nextDue(p, t)) : null;
+  const missing = [];
+  if (p.doseMode === 'ramp' ? !p.phases?.length : p.doseMg == null) missing.push('dose');
+  if (!p.startDate) missing.push('start date');
+  if (!Number.isFinite(c.conc)) missing.push('vial size and water');
+  const complete = p.status === 'active' && scheduleComplete(p, t);
+  const warns = p.status === 'active' ? vialCheck(p) : [];
+  let now = '';
+  if (p.status === 'active' && mgNow != null) {
+    const ciNow = cycleInfo(p, t);
+    now = `<div class="now-line"><div><div class="small muted">${isDue(p, t) ? (logsOn(p, t).length ? 'Logged today' : isSkipped(p, t) ? 'Skipped today' : 'Due today') : (nd ? `Next ${DOW[nd.getDay()]} ${fmtDate(nd)} (${daysBetween(t, nd)} d)` : '')}${wk ? ' · week ' + wk : ''}${ciNow ? (ciNow.on ? ` · cycle ${ciNow.idx + 1}${ciNow.count ? '/' + ciNow.count : ''}` : ` · <b>off period</b> until ${fmtDate(ciNow.nextStart)}`) : ''}</div><div class="big">${drNow ? n(drNow.units,1) + '<small>units</small>' : n(mgNow,2) + '<small>mg</small>'}</div><div class="num muted">${drNow ? n(drNow.ml,2) + ' cc · ' + n(mgNow,2) + ' mg' : 'add a vial for units'}</div></div>${drNow ? gauge(drNow.units, 380, syringeFor(p)) : ''}<div style="flex-basis:100%;min-width:0;width:100%">${dayStrip(p)}</div></div>`;
+  } else if (p.status === 'active' && cycleInfo(p, t) && !cycleInfo(p, t).on && !complete) {
+    const ci = cycleInfo(p, t); const nd2 = nextDue(p, t);
+    now = `<div class="now-line"><span class="chip plain">Off period</span><span class="small muted">Cycle ${ci.idx + 1} done · next cycle starts ${nd2 ? DOW[nd2.getDay()] + ' ' + fmtDate(nd2, true) : fmtDate(ci.nextStart, true)}</span><div style="flex-basis:100%;min-width:0;width:100%">${dayStrip(p)}</div></div>`;
+  } else if (complete) {
+    now = `<div class="now-line"><span class="chip plain">Schedule finished</span><span class="small muted">Edit the program with a new start date for the next cycle, or mark it complete.</span></div>`;
+  } else if (p.status === 'planned') {
+    now = `<div class="now-line"><span class="chip warn">${missing.length ? 'Missing: ' + missing.join(', ') : 'Ready to activate'}</span><span class="spacer"></span><button class="btn sm" data-action="edit-program" data-id="${p.id}">Set up</button>${!missing.length ? `<button class="btn sm primary" data-action="activate" data-id="${p.id}">Activate</button>` : ''}</div>`;
+  }
+  return `<article class="card prog-card">
+    <div class="row"><h3>${esc(p.name)}</h3>${statusChip(p)}<span class="spacer"></span>
+      ${p.status === 'active' ? `<button class="btn sm ghost" data-action="set-status" data-id="${p.id}" data-status="paused">Pause</button><button class="btn sm ghost" data-action="set-status" data-id="${p.id}" data-status="done">Mark complete</button>` : ''}
+      ${p.status === 'paused' || p.status === 'done' ? `<button class="btn sm ghost" data-action="set-status" data-id="${p.id}" data-status="active">Reactivate</button>` : ''}
+      ${opts.noSchedule ? `<button class="btn sm ghost" data-action="calc" data-id="${p.id}">Calculator</button>` : ''}<button class="btn sm" data-action="edit-program" data-id="${p.id}">Edit</button></div>
+    <div class="small muted">${esc(p.compound || '')}</div>
+    ${now}
+    <div class="prog-meta">
+      <div><div class="k">Frequency</div><div class="v">${freqLabel(p)}${p.cycle && p.cycle.onDays > 0 ? ` <span class="muted">· ${cycleLabel(p)}</span>` : ''}</div></div>
+      <div><div class="k">Syringe</div><div class="v">${syringeLabel(syringeFor(p))}</div></div>
+      <div><div class="k">Dose${p.doseBasis === 'weekly' ? ' · weekly total' : ''}</div><div class="v num">${p.doseMode === 'ramp' ? (p.phases?.length ? `Ramp ${p.phases.map(x => n(x.mg,2)).join(' → ')} mg` : '<span class="muted">not set</span>') : (p.doseMg != null ? n(p.doseMg,2) + ' mg' : '<span class="muted">not set</span>')}${p.doseBasis === 'weekly' ? ` <span class="muted">÷ ${n(shotsPerWeek(p),1)}/wk</span>` : ''}${mgNow != null ? ` <span class="chip accent">${n(mgNow,2)} mg per shot</span>` : ''}</div></div>
+      <div><div class="k">Started</div><div class="v">${p.startDate ? fmtDate(P(p.startDate), true) + (p.endDate ? ' → ' + fmtDate(P(p.endDate), true) : '') : '<span class="muted">not set</span>'}</div></div>
+      <div><div class="k">${p.vialType === 'solution' ? 'Vial' : 'Reconstitution'}</div><div class="v num">${p.recipe?.totalMg && p.recipe?.waterMl ? (p.vialType === 'solution' ? `${n(p.recipe.totalMg)} mg in ${n(p.recipe.waterMl)} mL = ${n(p.recipe.totalMg/p.recipe.waterMl,2)} mg/mL` : `${n(p.recipe.totalMg)} mg + ${n(p.recipe.waterMl)} mL = ${n(p.recipe.totalMg/p.recipe.waterMl,2)} mg/mL`) : '<span class="muted">not set</span>'}</div></div>
+      <div><div class="k">Current vial</div><div class="v">${v ? `${esc(v.label||'Vial')} · ${c.vs.expired ? '<span class="chip bad">expired</span>' : (c.vs.daysLeft != null ? c.vs.daysLeft + ' d left' : '—')} · ~${n(Math.max(0,c.vs.remaining),1)} mg` : (stockVials(p).length ? `<span class="muted">None mixed · ${stockVials(p).length} in stock</span> <button class="btn sm primary" data-action="mix-vial" data-id="${stockVials(p)[0].id}">Mix now</button>` : `<button class="btn sm" data-action="add-vial" data-program="${p.id}">Add vial</button>`)}</div></div>
+    </div>
+  </article>
+  <article class="card prog-card">
+    <div class="section-head" style="margin-bottom:8px"><h3>Plan</h3><span class="hint">${p.doseMode === 'ramp' ? 'Ramp by week' : 'Same dose each time'}${p.doseBasis === 'weekly' ? ' · weekly totals' : ''}</span></div>
+    ${warns.length ? `<div class="note-box" style="background:var(--warn-soft);margin-bottom:10px">${warns.map(w => '⚠ ' + esc(w)).join('<br>')}</div>` : ''}
+    ${planTable(p, c)}
+    ${p.status !== 'planned' && !opts.noSchedule ? doseScheduleTable(p, c) : ''}
+    ${p.notes ? `<details style="margin-top:10px"><summary>Protocol notes</summary><div class="note-box">${esc(p.notes)}</div></details>` : ''}
+  </article>`;
+}
+function renderProgramDetail() {
+  const p = store.data.programs[detailId];
+  if (!p) { if (currentView === 'program') showView('today'); return; }
+  if (currentView !== 'program') return;
+  const c = concFor(p);
+  const pv = programVials(p).concat(vials().filter(v => v.programId === p.id && v.discarded).sort(byVialOrder));
+  const t = today(); const mgNow = p.status === 'active' ? doseFor(p, t) : (doseRange(p)?.lo ?? null);
+  if (calcDetail.forProgram !== p.id) {
+    const v = c.vial;
+    calcDetail.vialMg = v ? String(v.totalMg) : (p.recipe?.totalMg != null ? String(p.recipe.totalMg) : '');
+    calcDetail.waterMl = v ? String(v.waterMl) : (p.recipe?.waterMl != null ? String(p.recipe.waterMl) : '');
+    calcDetail.doseMg = mgNow != null ? String(mgNow) : '';
+    calcDetail.forProgram = p.id;
+  }
+  $('#program').innerHTML = `<div class="row" style="margin-bottom:12px"><button class="btn sm" data-action="back">‹ Back</button><span class="muted small">Program details</span></div>
+    <div class="card-trio">
+      ${planCard(p, { noSchedule: true })}
+      <article class="card vials-card">
+        <div class="section-head" style="margin-bottom:8px"><h3>Vials</h3><span class="row" style="gap:4px"><button class="btn sm ghost" data-action="add-stock" data-program="${p.id}">+ Stock</button><button class="btn sm primary" data-action="add-vial" data-program="${p.id}">+ Add</button></span></div>
+        ${pv.filter(v => !v.discarded).length > 1 ? '<div class="small muted" style="margin-bottom:6px">Drag to set the order vials get used in.</div>' : ''}
+        <div class="stack vial-list" style="gap:8px">${pv.length ? pv.map((v, i, arr) => vialCard(v, { compact: true, orderable: !v.discarded, first: i === 0, last: i === arr.filter(x => !x.discarded).length - 1 })).join('') : `<div class="empty small">No vial yet. Add the vial you're drawing from to get units on every dose.</div>`}</div>
+      </article>
+    </div>
+    ${levelSection(p)}
+    ${/testosterone|estradiol|hcg|enclomiphene/i.test(p.compound + ' ' + p.name) ? labsSection({ title: 'Labs', preset: 'E2' }) : ''}
+    <section class="sec" id="program-doses"><div class="section-head"><h2>Doses</h2><span class="hint">Complete after you inject · Skip to push the schedule</span></div>${doseScheduleTable(p, c, { bare: true })}</section>`;
+  wireVialDrag($('#program .vial-list'));
+  scrollStrips($('#program'));
+}
+function wireVialDrag(list) {
+  if (!list) return;
+  const cards = $$('[draggable="true"]', list); if (cards.length < 2) return;
+  cards.forEach(card => {
+    card.addEventListener('dragstart', e => { card.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', card.dataset.vid); } catch {} });
+    card.addEventListener('dragend', () => card.classList.remove('dragging'));
+  });
+  list.addEventListener('dragover', e => {
+    e.preventDefault(); const dragging = list.querySelector('.dragging'); if (!dragging) return;
+    const others = $$('[draggable="true"]:not(.dragging)', list);
+    const after = others.find(el => { const r = el.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; });
+    if (after) list.insertBefore(dragging, after); else { const lastOrderable = others[others.length - 1]; if (lastOrderable) lastOrderable.after(dragging); }
+  });
+  list.addEventListener('drop', async e => { e.preventDefault(); const ids = $$('[data-vid]', list).map(el => el.dataset.vid); await saveVialOrder(ids); toast('Vial order saved'); });
+}
+function orphanVials() { return vials().filter(v => !store.data.programs[v.programId]); }
+function renderOrphans() {
+  const el = $('#orphans'); if (!el) return;
+  const ov = orphanVials();
+  if (!ov.length) { el.innerHTML = ''; return; }
+  const ps = programs();
+  el.innerHTML = `<section class="sec"><div class="section-head"><h2>Vials without a program</h2><span class="hint">Their program was deleted. Move each one to a program or delete it.</span></div>
+    <div class="stack">${ov.map(v => { const st = vialStats(v); return `<div class="card row" style="gap:10px"><b>${esc(v.label || 'Vial')}</b><span class="chip warn">No program</span><span class="small muted num">${n(v.totalMg)} mg${v.waterMl ? ` in ${n(v.waterMl)} mL · ${n(st.conc, 2)} mg/mL` : ' · not mixed'}${st.mixed ? ` · mixed ${fmtDate(st.mixed)}` : ''}${v.discarded ? ' · discarded' : ''}</span><span class="spacer"></span>
+      ${ps.length ? `<select class="btn sm" data-orphan-assign="${v.id}"><option value="">Move to program…</option>${ps.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select>` : ''}
+      <button class="btn sm danger" data-action="del-vial-now" data-id="${v.id}">Delete</button></div>`; }).join('')}</div></section>`;
+}
+async function wipeAllData() {
+  const cols = ['programs', 'vials', 'logs', 'labs', 'settings'];
+  for (const col of cols) for (const id of Object.keys(store.data[col] || {})) await store.del(col, id);
+  try { localStorage.removeItem(LS_KEY); localStorage.removeItem('pt-graph'); } catch {}
+  detailId = null; showView('today'); toast('All data removed');
+}
+function vialCard(v, opts = {}) {
+  const s = vialStats(v); const pct = v.totalMg > 0 ? Math.max(0, Math.min(100, s.remaining / v.totalMg * 100)) : 0;
+  const p = store.data.programs[v.programId];
+  const chip = v.discarded ? '<span class="chip plain">Discarded</span>' : s.unmixed ? '<span class="chip accent">Not mixed</span>' : (s.expired ? `<span class="chip bad">Expired</span>` : (s.daysLeft != null && s.daysLeft <= 5 ? `<span class="chip warn">${s.daysLeft} d left</span>` : `<span class="chip plain">${s.daysLeft != null ? s.daysLeft + ' d left' : ''}</span>`));
+  const recipe = p?.recipe?.totalMg > 0 && p?.recipe?.waterMl > 0 ? `+ ${n(p.recipe.waterMl)} mL = ${n(v.totalMg / p.recipe.waterMl, 2)} mg/mL` : 'set water when you mix';
+  const dragAttrs = opts.orderable ? `draggable="true" data-vid="${v.id}"` : '';
+  const handle = opts.orderable ? `<span class="grip" title="Drag to reorder">⋮⋮</span>` : '';
+  if (s.unmixed) return `<article class="card ${opts.compact ? 'vial-mini' : ''} ${v.discarded ? 'muted' : ''}" ${dragAttrs}>
+      <div class="row" style="gap:6px">${handle}<b>${esc(v.label || 'Vial')}</b>${chip}<span class="spacer"></span>${!v.discarded ? `<button class="btn sm primary" data-action="mix-vial" data-id="${v.id}">${p?.vialType === 'solution' ? 'Open now' : 'Mix now'}</button>` : ''}<button class="btn sm ghost" data-action="edit-vial" data-id="${v.id}">Edit</button></div>
+      ${opts.compact ? '' : `<div class="small muted">${esc(p ? p.name : 'Unassigned')}</div>`}
+      <div class="small muted num">${p?.vialType === 'solution' ? `${n(v.totalMg)} mg sealed vial${p?.recipe?.waterMl ? ` · ${n(v.totalMg / p.recipe.waterMl, 0)} mg/mL` : ''}` : `${n(v.totalMg)} mg dry powder · ${recipe}`}</div>
+      ${v.notes ? `<div class="small muted">${esc(v.notes)}</div>` : ''}
+    </article>`;
+  if (opts.compact) return `<article class="card vial-mini ${v.discarded ? 'muted' : ''}" ${dragAttrs}>
+      <div class="row" style="gap:6px">${handle}<b>${esc(v.label || 'Vial')}</b>${chip}<span class="spacer"></span><button class="btn sm ghost" data-action="edit-vial" data-id="${v.id}" aria-label="Edit vial">Edit</button></div>
+      <div class="small muted num">${n(s.conc,2)} mg/mL · 1 mg = ${Number.isFinite(s.conc) ? n(100/s.conc,1) : '—'} u</div>
+      <div class="small muted">${p?.vialType === 'solution' ? 'Opened' : 'Mixed'} ${s.mixed ? fmtDate(s.mixed) : '—'} · discard ${s.discardOn ? fmtDate(s.discardOn) : '—'}</div>
+      <div class="bar" style="margin-top:6px"><i style="width:${pct}%"></i></div>
+      <div class="row small muted" style="margin-top:3px"><span><span class="num">${n(Math.max(0,s.remaining),1)}</span> of ${n(v.totalMg)} mg left</span><span class="spacer"></span>${!v.discarded ? `<button class="btn sm ghost" data-action="discard-vial" data-id="${v.id}">Discard</button>` : ''}</div>
+    </article>`;
+  return `<article class="card ${v.discarded ? 'muted' : ''}">
+      <div class="row" style="gap:6px"><h3>${esc(v.label || 'Vial')}</h3><span class="spacer"></span>
+        ${v.discarded ? '<span class="chip plain">Discarded</span>' : (s.expired ? `<span class="chip bad">Expired</span>` : (s.daysLeft != null && s.daysLeft <= 5 ? `<span class="chip warn">${s.daysLeft} d left</span>` : `<span class="chip plain">${s.daysLeft != null ? s.daysLeft + ' d left' : ''}</span>`))}</div>
+      <div class="small muted">${esc(p ? p.name : 'Unassigned')}</div>
+      <div class="prog-meta">
+        <div><div class="k">mg/mL</div><div class="v num">${n(s.conc,2)}</div></div>
+        <div><div class="k">1 mg =</div><div class="v num">${Number.isFinite(s.conc) ? n(100/s.conc,1) + ' u' : '—'}</div></div>
+        <div><div class="k">Mixed</div><div class="v">${s.mixed ? fmtDate(s.mixed) : '—'}</div></div>
+        <div><div class="k">Discard</div><div class="v">${s.discardOn ? fmtDate(s.discardOn) : '—'}</div></div>
+      </div>
+      <div class="bar ${s.remaining <= 0 ? 'empty' : (pct < 25 ? 'low' : '')}"><i style="width:${pct}%"></i></div>
+      <div class="small muted" style="margin:4px 0 8px"><span class="num">${n(Math.max(0,s.remaining),1)}</span> of ${n(v.totalMg)} mg left${v.notes ? ' · ' + esc(v.notes) : ''}</div>
+      <div class="row" style="gap:4px">${!v.discarded ? `<button class="btn sm ghost" data-action="discard-vial" data-id="${v.id}">Discard</button>` : ''}<button class="btn sm ghost" data-action="edit-vial" data-id="${v.id}">Edit</button></div>
+    </article>`;
+}
+function renderVials() {
+  if (!$('#vials')) return;
+  const vs = vials().sort((a,b) => (a.discarded?1:0) - (b.discarded?1:0) || (a.mixedDate?0:1) - (b.mixedDate?0:1) || (b.mixedDate||'').localeCompare(a.mixedDate||''));
+  const pm = store.data.programs;
+  let h = `<div class="section-head"><h2>Vials</h2><span class="row" style="gap:4px"><button class="btn sm ghost" data-action="add-stock">+ Stock</button><button class="btn sm primary" data-action="add-vial">+ Add</button></span></div><div class="stack">`;
+  if (!vs.length) h += `<div class="empty">No vials yet. Add the mg in the vial and the mL of BAC water you added.</div>`;
+  for (const v of vs) {
+    h += vialCard(v);
+  }
+  h += `</div>`;
+  $('#vials').innerHTML = h;
+}
+
+let logFilter = 'all', logAll = false;
+function renderLog() {
+  const pm = store.data.programs; const vm = store.data.vials;
+  const ls = logs().filter(l => logFilter === 'all' || l.programId === logFilter);
+  let h = `<div class="section-head"><h2>Dose log</h2><div class="row"><select id="logFilter" class="btn sm"><option value="all">All programs</option>${programs().map(p => `<option value="${p.id}" ${logFilter===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select><button class="btn sm" data-action="log">+ Log a dose</button><button class="btn sm ghost" data-action="export">Export</button><button class="btn sm ghost" data-action="import">Import</button></div></div>`;
+  if (!ls.length) h += `<div class="empty">No doses logged yet.</div>`;
+  else {
+    h += `<div class="table-wrap"><table><thead><tr><th>When</th><th>Program</th><th class="num">Dose</th><th class="num">Units</th><th>Site</th><th>Vial</th><th>Note</th><th></th></tr></thead><tbody>`;
+    for (const l of ls.slice(0, logAll ? 500 : 15)) {
+      const d = new Date(l.at);
+      h += `<tr><td>${fmtDate(d, true)} <span class="muted">${fmtTime(l.at)}</span></td><td>${esc(pm[l.programId]?.name || '—')}</td><td class="num">${n(l.doseMg,2)} mg</td><td class="num">${l.units != null ? n(l.units,1) + ' u' : '—'}</td><td>${esc(l.site || '')}</td><td class="muted">${esc(vm[l.vialId]?.label || '')}</td><td class="muted" style="white-space:normal">${esc(l.note || '')}</td><td><button class="btn sm ghost danger" data-action="del-log" data-id="${l.id}" aria-label="Delete entry">✕</button></td></tr>`;
+    }
+    h += `</tbody></table></div>${ls.length > 15 && !logAll ? `<p class="small" style="margin-top:8px"><button class="btn sm ghost" id="logMore">Show all ${ls.length}</button></p>` : ''}`;
+  }
+  $('#log').innerHTML = h;
+  $('#logFilter').addEventListener('change', e => { logFilter = e.target.value; renderLog(); });
+  const more = $('#logMore'); if (more) more.addEventListener('click', () => { logAll = true; renderLog(); });
+}
+
+const calc = { vialMg: '10', waterMl: '1', doseMg: '1', compMg: '', compDose: '' };
+const calcDetail = { vialMg: '', waterMl: '', doseMg: '', compMg: '', compDose: '', forProgram: null };
+function mountCalc(view, st, opts = {}) {
+  const uid_ = opts.prefix || 'c';
+  if (!view.dataset.built) {
+    view.innerHTML = `
+    ${opts.compact ? '' : `<div class="section-head"><h2>Calculator</h2><span class="hint">Scratch math. Nothing here is saved.</span></div>`}
+    <div class="card" style="margin-bottom:${opts.compact ? 0 : 14}px">
+      <div class="${opts.compact ? 'stack' : 'grid3'}">
+        <div class="field"><label for="${uid_}-vial">Peptide in vial (mg)</label><input id="${uid_}-vial" type="text" inputmode="decimal" value="${st.vialMg}" data-calc="vialMg"></div>
+        <div class="field"><label for="${uid_}-water">BAC water added (mL)</label><input id="${uid_}-water" type="text" inputmode="decimal" value="${st.waterMl}" data-calc="waterMl"></div>
+        <div class="field"><label for="${uid_}-dose">Dose you want (mg)</label><input id="${uid_}-dose" type="text" inputmode="decimal" value="${st.doseMg}" data-calc="doseMg"></div>
+      </div>
+      <div data-out="main"></div>
+    </div>
+    ${opts.compact ? '' : `<div class="card" style="margin-bottom:14px">
+      <h3 style="font-size:14px;margin-bottom:4px">Blend component</h3>
+      <p class="small muted" style="margin-bottom:10px">For a blended vial (a KLOW-style mix), enter how much of one component is in the vial and the per-shot target for it.</p>
+      <div class="grid2">
+        <div class="field"><label for="${uid_}-comp">Component in vial (mg)</label><input id="${uid_}-comp" type="text" inputmode="decimal" value="${st.compMg}" data-calc="compMg" placeholder="e.g. 50"></div>
+        <div class="field"><label for="${uid_}-compdose">Component dose per shot (mg)</label><input id="${uid_}-compdose" type="text" inputmode="decimal" value="${st.compDose}" data-calc="compDose" placeholder="e.g. 1.25"></div>
+      </div>
+      <div data-out="comp"></div>
+    </div>
+    <div data-out="table"></div>
+    <p class="small faint" style="margin-top:10px">mg/mL = vial mg ÷ mL water · cc = dose ÷ mg/mL · units = cc × 100. Math only. Confirm dosing with your clinician.</p>`}`;
+    view.dataset.built = '1';
+    $$('[data-calc]', view).forEach(i => i.addEventListener('input', e => { st[e.target.dataset.calc] = e.target.value; updateCalc(view, st, opts); }));
+  } else if (opts.sync) {
+    $$('[data-calc]', view).forEach(i => { if (document.activeElement !== i) i.value = st[i.dataset.calc] ?? ''; });
+  }
+  updateCalc(view, st, opts);
+}
+function updateCalc(view, st, opts = {}) {
+  const vialMg = num(st.vialMg) || 0, waterMl = num(st.waterMl) || 0, doseMg = num(st.doseMg) || 0;
+  const conc = vialMg > 0 && waterMl > 0 ? vialMg / waterMl : NaN;
+  const dr = Number.isFinite(conc) && doseMg > 0 ? drawFor(doseMg, conc) : null;
+  const perUnit = conc / 100;
+  const syr = opts.syr || syringeFor(null); const max = syr.units;
+  const capWarn = opts.capacityMl > 0 && waterMl > opts.capacityMl ? `<div class="small" style="color:var(--bad);margin-top:6px">⚠ ${n(waterMl)} mL is more than the ${n(opts.capacityMl)} mL vial holds.</div>` : '';
+  const main = view.querySelector('[data-out="main"]');
+  if (opts.compact) {
+    main.innerHTML = `<div class="stack" style="margin-top:12px;gap:6px">
+      <div class="row small"><span class="muted">Concentration</span><span class="spacer"></span><b class="num">${n(conc,2)} mg/mL</b></div>
+      <div class="row small"><span class="muted">1 unit</span><span class="spacer"></span><b class="num">${Number.isFinite(perUnit) ? n(perUnit,3) : '—'} mg</b></div>
+      <div class="row small"><span class="muted">Draw</span><span class="spacer"></span><b class="num">${dr ? n(dr.ml,2) + ' cc · ' + n(dr.units,1) + ' u' : '—'}</b></div>
+    </div>${capWarn}${dr ? gauge(dr.units, 380, syr) : ''}`;
+    return;
+  }
+  const compMg = num(st.compMg), compDose = num(st.compDose);
+  const compPerUnit = compMg != null && waterMl > 0 ? compMg / waterMl / 100 : null;
+  const compUnits = compPerUnit && compDose ? compDose / compPerUnit : null;
+  const compShots = compMg && compDose ? compMg / compDose : null;
+  main.innerHTML = `
+      <div class="calc-out" style="margin-top:14px">
+        <div class="tile"><div class="k">Concentration</div><div class="v">${n(conc,2)} mg/mL</div><div class="small muted">1 unit = ${Number.isFinite(perUnit) ? n(perUnit,3) : '—'} mg</div></div>
+        <div class="tile"><div class="k">Draw</div><div class="v">${dr ? n(dr.ml,2) : '—'} cc</div><div class="small muted">${dr ? n(dr.ml,3) + ' mL' : ''}</div></div>
+        <div class="tile"><div class="k">Units</div><div class="v">${dr ? n(dr.units,1) : '—'} u</div><div class="small muted">${dr && dr.units > max ? 'More than one syringe' : `on a ${max}-unit syringe`}</div></div>
+      </div>
+      ${dr ? gauge(dr.units, 380, syr) : ''}`;
+  view.querySelector('[data-out="comp"]').innerHTML = `
+      <div class="calc-out" style="margin-top:12px">
+        <div class="tile"><div class="k">Units per shot</div><div class="v">${compUnits != null ? n(compUnits,1) : '—'} u</div><div class="small muted">${compUnits != null ? n(compUnits/100,2) + ' cc' : ''}</div></div>
+        <div class="tile"><div class="k">Shots in vial</div><div class="v">${compShots != null ? n(compShots,1) : '—'}</div></div>
+        <div class="tile"><div class="k">Total blend per shot</div><div class="v">${compUnits != null && Number.isFinite(perUnit) ? n(perUnit*compUnits,2) : '—'} mg</div></div>
+      </div>`;
+  const rows = [5, 7.5, 10, 15, 20, 25, 30, 40, 50, 75, 100].filter(u => u <= max).map(u => `<tr><td class="num">${u} u</td><td class="num">${n(u/100,2)} cc</td><td class="num">${Number.isFinite(perUnit) ? n(perUnit*u,3) + ' mg' : '—'}</td><td class="num">${compPerUnit != null ? n(compPerUnit*u,3) + ' mg' : '—'}</td></tr>`).join('');
+  view.querySelector('[data-out="table"]').innerHTML = `<div class="table-wrap"><table><thead><tr><th class="num">Units</th><th class="num">cc</th><th class="num">Total mg</th><th class="num">Component mg</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+/* ---------- modals ---------- */
+function openModal(html) { $('#modal').innerHTML = html; $('#modalBg').classList.add('open'); const f = $('#modal input, #modal select'); f && f.focus(); }
+function closeModal() { $('#modalBg').classList.remove('open'); $('#modal').innerHTML = ''; }
+let modalDownOnBackdrop = false;
+$('#modalBg').addEventListener('pointerdown', e => { modalDownOnBackdrop = e.target === e.currentTarget; });
+$('#modalBg').addEventListener('click', e => { if (e.target === e.currentTarget && modalDownOnBackdrop) closeModal(); modalDownOnBackdrop = false; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); if (e.key === 'Enter' && e.target.matches('.card.click')) e.target.click(); });
+
+const PRESETS = {
+  reta: { name:'Retatrutide', compound:'Retatrutide', freq:{type:'weekly'}, doseMode:'ramp', phases:[{from:1,to:4,mg:2},{from:5,to:8,mg:4},{from:9,to:12,mg:6},{from:13,to:16,mg:9},{from:17,to:null,mg:12}], recipe:{totalMg:10,waterMl:1}, halfLifeDays:6, absorbDays:1,
+    notes:'Baseline = TRIUMPH phase 3 titration: 2 → 4 → 6 → 9 → 12 mg once weekly, 4 weeks per step; trial arms held at 4, 9 or 12 mg. Many people run a gentler ramp (0.5 → 1 → 2 → 4 mg) and stop lower — edit the phases to what you actually plan.\n10 mg + 1 mL BAC = 10 mg/mL, so 1 mg = 10 units. Refrigerate; discard 28 days after mixing.' },
+  klow: { name:'KLOW blend', compound:'GHK-Cu 50 / BPC-157 10 / TB-500 10 / KPV 10 (80 mg)', freq:{type:'daily'}, doseMode:'flat', doseMg:2, recipe:{totalMg:80,waterMl:2}, cycle:{onDays:70, offDays:42, count:null},
+    notes:'Baseline (community, no clinical trial): 80 mg + 2 mL BAC = 40 mg/mL. A 5-unit (0.05 mL) draw = 2 mg blend ≈ 1.25 mg GHK-Cu + 250 mcg each BPC-157, TB-500, KPV. Daily subQ, 8–12 weeks on then 4–8 weeks off. Reference singles: GHK-Cu 1–2 mg/day, BPC-157 and KPV 300–500 mcg/day.' },
+  ghk: { name:'GHK-Cu', compound:'GHK-Cu', freq:{type:'daily'}, doseMode:'ramp', phases:[{from:1,to:2,mg:1},{from:3,to:4,mg:2}], recipe:{totalMg:50,waterMl:2}, cycle:{onDays:28, offDays:28, count:null},
+    notes:'Baseline (clinic guides): 1 mg/day for days 1–15, then 2 mg/day for days 16–30, subQ. Cycle 30 days on / 30 off (some use 4–6 weeks on, 2–4 off). Usual working range 1–2 mg/day; injectable window 0.5–3 mg.\n50 mg + 2 mL BAC = 25 mg/mL, so 1 mg = 4 units, 2 mg = 8 units. Cycle is prefilled as 4 weeks on / 4 weeks off, repeating.' },
+  motsc: { name:'MOTS-c', compound:'MOTS-c', freq:{type:'days', days:[1,3,5]}, doseMode:'flat', doseMg:5, recipe:{totalMg:10,waterMl:1}, cycle:{onDays:28, offDays:28, count:null},
+    notes:'Baseline (community; no completed human efficacy trial): 5 mg subQ 2–3× per week (Mon/Wed/Fri) for a 4-week first cycle, then 4 weeks off. Later cycles 5 mg 3×/week for 4–6 weeks, or 10 mg 2–3×/week for 6–8 weeks. Total 5–10 mg per week is the usual anchor.\n10 mg + 1 mL BAC = 10 mg/mL, so 5 mg = 50 units (or use 2 mL for 5 mg/mL = 100 units). Cycle is prefilled as 4 weeks on / 4 weeks off, repeating.' },
+  testc: { name:'Testosterone cypionate', compound:'Testosterone cypionate (200 mg/mL)', freq:{type:'days', days:[1,4]}, doseMode:'flat', doseMg:100, doseBasis:'weekly', recipe:{totalMg:2000,waterMl:10}, vialType:'solution', ester:'cyp', halfLifeDays:8, absorbDays:2, syringe:{units:100, gaugeG:27, lengthMm:12.7},
+    notes:'Baseline (clinical TRT range): 100 mg/week total, split 50 mg Mon/Thu subQ. Guidelines put cypionate at 50–100 mg weekly or 100–200 mg every 2 weeks; adjust to labs. Oil vial, no reconstitution: 10 mL at 200 mg/mL, so 50 mg = 0.25 mL = 25 units. Half-life ~8 days. Many use a 1 cc / 27–29G subQ syringe; IM is 23–25G × 1". Check estradiol and hematocrit on labs.' },
+  teste: { name:'Testosterone enanthate', compound:'Testosterone enanthate (250 mg/mL)', freq:{type:'days', days:[1,4]}, doseMode:'flat', doseMg:100, doseBasis:'weekly', recipe:{totalMg:2500,waterMl:10}, vialType:'solution', ester:'enan', halfLifeDays:4.5, absorbDays:1.5, syringe:{units:100, gaugeG:27, lengthMm:12.7},
+    notes:'Baseline (clinical TRT range): 100 mg/week total, split 50 mg Mon/Thu. Oil vial, no reconstitution: 10 mL at 250 mg/mL, so 50 mg = 0.2 mL = 20 units. Half-life ~4.5 days, so twice-weekly keeps levels flatter. Check estradiol and hematocrit on labs.' },
+  custom: { name:'', compound:'', freq:{type:'weekly'}, doseMode:'flat' }
+};
+
+function programForm(p) {
+  const isNew = !p.id;
+  const f = p.freq || { type:'weekly' };
+  const days = f.days || (p.startDate ? [P(p.startDate).getDay()] : []);
+  const phases = p.phases?.length ? p.phases : [{ from:1, to:null, mg:'' }];
+  const phaseRows = phases.map(ph => phaseRow(ph)).join('');
+  openModal(`<h2>${isNew ? 'New program' : 'Edit ' + esc(p.name)}</h2>
+  <form class="form" id="programForm">
+    ${isNew ? `<div class="field"><label>Start from a preset <span class="faint">(prefills a commonly cited baseline — edit anything)</span></label><div class="checks" id="presetPick">${Object.entries(PRESETS).map(([k,v]) => `<label><input type="radio" name="preset" value="${k}"> ${v.name || 'Custom'}</label>`).join('')}</div></div>` : ''}
+    <div class="grid2">
+      <div class="field"><label for="f-name">Name</label><input id="f-name" name="name" required value="${esc(p.name||'')}"></div>
+      <div class="field"><label for="f-compound">Compound(s)</label><input id="f-compound" name="compound" value="${esc(p.compound||'')}"></div>
+    </div>
+    <div class="grid3">
+      <div class="field"><label for="f-status">Status</label><select id="f-status" name="status">${['planned','active','paused','done'].map(s => `<option value="${s}" ${(p.status||'planned')===s?'selected':''}>${{planned:'Planned',active:'Active',paused:'Paused',done:'Completed'}[s]}</option>`).join('')}</select></div>
+      <div class="field"><label for="f-start">Start date</label><input id="f-start" name="startDate" type="date" value="${esc(p.startDate||'')}"></div>
+      <div class="field"><label for="f-end">End date <span class="faint">(optional)</span></label><input id="f-end" name="endDate" type="date" value="${esc(p.endDate||'')}"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label for="f-freq">Frequency</label><select id="f-freq" name="freqType">${[['weekly','Once a week'],['daily','Every day'],['days','Specific weekdays'],['everyN','Every N days']].map(([k,l]) => `<option value="${k}" ${f.type===k?'selected':''}>${l}</option>`).join('')}</select></div>
+      <div class="field" id="everyNField" ${f.type==='everyN'?'':'hidden'}><label for="f-everyN">Every how many days</label><input id="f-everyN" name="everyN" type="number" min="1" value="${f.everyN||2}"></div>
+    </div>
+    <div class="field" id="daysField" ${(f.type==='weekly'||f.type==='days')?'':'hidden'}><label>Day(s)</label><div class="checks">${DOW.map((d,i) => `<label><input type="checkbox" name="days" value="${i}" ${days.includes(i)?'checked':''}> ${d}</label>`).join('')}</div><div class="row" style="margin-top:6px;gap:4px"><span class="small muted">Quick split:</span><button type="button" class="btn sm ghost" data-split="1">1×/wk</button><button type="button" class="btn sm ghost" data-split="2">2× Mon·Thu</button><button type="button" class="btn sm ghost" data-split="3">3× Mon·Wed·Fri</button><button type="button" class="btn sm ghost" data-split="eod">Every other day</button><button type="button" class="btn sm ghost" data-split="7">Every day</button></div><div class="help">Weekly uses the first checked day. Leave blank to use the start date's weekday.</div></div>
+    <div class="field"><label>Dosing</label><div class="checks"><label><input type="radio" name="doseMode" value="flat" ${p.doseMode!=='ramp'?'checked':''}> Same dose every time</label><label><input type="radio" name="doseMode" value="ramp" ${p.doseMode==='ramp'?'checked':''}> Ramp by week</label></div></div>
+    <div class="field"><label>On / off cycle <span class="faint">optional</span></label>
+      <div class="grid3">
+        <div class="field"><label for="f-cyon">On</label><div class="row" style="gap:6px;flex-wrap:nowrap"><input id="f-cyon" name="cycleOn" type="number" min="1" step="1" value="${p.cycle?.onDays ? (p.cycle.onDays % 7 === 0 ? p.cycle.onDays / 7 : p.cycle.onDays) : ''}" placeholder="e.g. 4"><select name="cycleOnUnit" style="max-width:90px"><option value="weeks" ${!p.cycle?.onDays || p.cycle.onDays % 7 === 0 ? 'selected' : ''}>weeks</option><option value="days" ${p.cycle?.onDays && p.cycle.onDays % 7 !== 0 ? 'selected' : ''}>days</option></select></div></div>
+        <div class="field"><label for="f-cyoff">Off</label><div class="row" style="gap:6px;flex-wrap:nowrap"><input id="f-cyoff" name="cycleOff" type="number" min="0" step="1" value="${p.cycle?.offDays ? (p.cycle.offDays % 7 === 0 ? p.cycle.offDays / 7 : p.cycle.offDays) : ''}" placeholder="e.g. 4"><select name="cycleOffUnit" style="max-width:90px"><option value="weeks" ${!p.cycle?.offDays || p.cycle.offDays % 7 === 0 ? 'selected' : ''}>weeks</option><option value="days" ${p.cycle?.offDays && p.cycle.offDays % 7 !== 0 ? 'selected' : ''}>days</option></select></div></div>
+        <div class="field"><label for="f-cycount">Repeat</label><input id="f-cycount" name="cycleCount" type="number" min="1" step="1" value="${p.cycle?.count ?? ''}" placeholder="blank = forever"></div>
+      </div>
+      <div class="row" style="margin-top:6px;gap:4px"><span class="small muted">Quick:</span><button type="button" class="btn sm ghost" data-cycle="4,4">4 wk on / 4 off</button><button type="button" class="btn sm ghost" data-cycle="30,30,d">30 d on / 30 off</button><button type="button" class="btn sm ghost" data-cycle="8,4">8 on / 4 off</button><button type="button" class="btn sm ghost" data-cycle="12,8">12 on / 8 off</button><button type="button" class="btn sm ghost" data-cycle="">No cycle</button></div>
+      <div class="help">Doses are only due during the on period. Week numbers and ramp phases restart at each cycle. Leave blank for a continuous program; use the end date to stop it.</div></div>
+    <div class="field"><label>Dose entered as</label><div class="checks"><label><input type="radio" name="doseBasis" value="shot" ${(p.doseBasis || 'shot') === 'shot' ? 'checked' : ''}> Per shot</label><label><input type="radio" name="doseBasis" value="weekly" ${p.doseBasis === 'weekly' ? 'checked' : ''}> Weekly total, split across the days above</label></div><div class="help" id="splitHelp"></div></div>
+    <div class="field" id="flatField" ${p.doseMode==='ramp'?'hidden':''}><label for="f-dose" id="f-dose-label">Dose per shot (mg)</label><input id="f-dose" name="doseMg" type="number" step="0.001" min="0" value="${p.doseMg ?? ''}"></div>
+    <div class="field" id="rampField" ${p.doseMode==='ramp'?'':'hidden'}><label>Ramp phases</label><div class="phases" id="phases"><div class="phase-row small muted"><span>From week</span><span>To week</span><span>mg per shot</span><span></span></div>${phaseRows}</div><button type="button" class="btn sm" id="addPhase" style="justify-self:start;margin-top:6px">+ Add phase</button><div class="help">Leave "To week" blank on the last phase to hold that dose indefinitely.</div></div>
+    <div class="field"><label>Vial type</label><div class="checks"><label><input type="radio" name="vialType" value="lyo" ${(p.vialType || 'lyo') === 'lyo' ? 'checked' : ''}> Powder + BAC water</label><label><input type="radio" name="vialType" value="solution" ${p.vialType === 'solution' ? 'checked' : ''}> Pre-mixed solution (oil, mg/mL)</label></div></div>
+    <div class="grid2">
+      <div class="field"><label for="f-rmg" id="f-rmg-label">Peptide per vial (mg)</label><input id="f-rmg" name="recipeMg" type="number" step="0.01" min="0" value="${p.recipe?.totalMg ?? ''}"><div class="help" id="f-rmg-help">The mg on the vial label, not the bottle size. Prefills new vials.</div></div>
+      <div class="field"><label for="f-rml" id="f-rml-label">Usual BAC water (mL)</label><input id="f-rml" name="recipeMl" type="number" step="0.01" min="0" value="${p.recipe?.waterMl ?? ''}"></div>
+    </div>
+    <div class="field" style="max-width:260px" id="f-cap-field"><label for="f-cap">Glass vial size</label><select id="f-cap" name="capacityMl"><option value="" ${!p.recipe?.capacityMl ? 'selected' : ''}>Not set</option><option value="3" ${p.recipe?.capacityMl == 3 ? 'selected' : ''}>3 mL</option><option value="5" ${p.recipe?.capacityMl == 5 ? 'selected' : ''}>5 mL</option></select><div class="help">Used only to warn if you add more water than the vial holds.</div></div>
+    <div class="field"><label for="f-ester">Ester <span class="faint">(fills half-life, peak and mg/mL)</span></label><select id="f-ester" name="ester"><option value="">— not an ester / leave as is —</option>${ESTERS.map(e => `<option value="${e.key}" ${p.ester === e.key ? 'selected' : ''}>${e.name} · ${e.hl} d</option>`).join('')}</select>
+      <details style="margin-top:4px"><summary>Ester half-life reference</summary><div class="table-wrap" style="margin-top:6px"><table><thead><tr><th>Ester</th><th class="num">Half-life</th><th class="num">Peak after dose</th><th class="num">Typical mg/mL</th><th>Usual cadence</th></tr></thead><tbody>${ESTERS.map(e => `<tr><td>${e.name}</td><td class="num">${e.hl} d</td><td class="num">~${e.abs} d</td><td class="num">${e.conc}</td><td class="muted">${e.note}</td></tr>`).join('')}</tbody></table></div><div class="help">Commonly cited values; individual response varies. Blends and undecanoate are rough single-half-life approximations.</div></details></div>
+    <div class="grid2">
+      <div class="field"><label for="f-hl">Half-life (days) <span class="faint">optional</span></label><input id="f-hl" name="halfLifeDays" type="number" step="0.1" min="0" value="${p.halfLifeDays ?? ''}"><div class="help">Turns on the level-in-system chart. Cypionate ~8, enanthate ~4.5, retatrutide ~6.</div></div>
+      <div class="field"><label for="f-abs">Days to peak after a dose <span class="faint">optional</span></label><input id="f-abs" name="absorbDays" type="number" step="0.1" min="0" value="${p.absorbDays ?? ''}"><div class="help">Default 1. Oil esters ~1.5–2.</div></div>
+    </div>
+    <div class="grid3">
+      <div class="field"><label for="f-syr">Syringe</label><select id="f-syr" name="syrUnits">${SYRINGE_SIZES.map(([u, l]) => `<option value="${u}" ${(p.syringe?.units || store.settings.syringeUnits || 100) == u ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="field"><label for="f-gauge">Needle gauge</label><select id="f-gauge" name="gaugeG">${NEEDLE_GAUGES.map(g => `<option value="${g}" ${(p.syringe?.gaugeG || 31) == g ? 'selected' : ''}>${g}G</option>`).join('')}</select></div>
+      <div class="field"><label for="f-len">Needle length</label><select id="f-len" name="lengthMm">${NEEDLE_LENGTHS.map(([mm, l]) => `<option value="${mm}" ${(p.syringe?.lengthMm || 12.7) == mm ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    </div>
+    <div class="field"><label for="f-notes">Protocol notes</label><textarea id="f-notes" name="notes" placeholder="Reconstitution steps, storage, timing (fasted / bedtime), site rotation, anything you keep forgetting.">${esc(p.notes||'')}</textarea></div>
+    <div class="modal-actions">${!isNew ? `<button type="button" class="btn danger ghost" data-action="del-program" data-id="${p.id}">Delete</button><span class="spacer"></span>` : ''}<button type="button" class="btn" data-action="close">Cancel</button><button type="submit" class="btn primary">Save</button></div>
+  </form>`);
+  const form = $('#programForm');
+  const syncVialType = () => { const sol = form.vialType.value === 'solution'; $('#f-cap-field').hidden = sol; $('#f-rmg-label').textContent = sol ? 'Total mg in vial' : 'Peptide per vial (mg)'; $('#f-rmg-help').textContent = sol ? 'Concentration × volume, e.g. 200 mg/mL × 10 mL = 2000 mg. Prefills new vials.' : 'The mg on the vial label, not the bottle size. Prefills new vials.'; $('#f-rml-label').textContent = sol ? 'Vial volume (mL)' : 'Usual BAC water (mL)'; };
+  $$('input[name="vialType"]', form).forEach(r => r.addEventListener('change', syncVialType)); syncVialType();
+  form.ester.addEventListener('change', () => {
+    const e = ESTERS.find(x => x.key === form.ester.value); if (!e) return;
+    form.halfLifeDays.value = e.hl; form.absorbDays.value = e.abs;
+    $$('input[name="vialType"]', form).forEach(r => r.checked = r.value === 'solution'); syncVialType();
+    if (!num(form.recipeMg.value) || !num(form.recipeMl.value)) { form.recipeMl.value = 10; form.recipeMg.value = e.conc * 10; }
+    if (!form.compound.value.trim() || /testosterone|sustanon/i.test(form.compound.value)) form.compound.value = `${e.name} (${e.conc} mg/mL)`;
+    if (!form.name.value.trim()) form.name.value = e.name;
+    toast(`${e.name}: half-life ${e.hl} d, peak ~${e.abs} d`);
+  });
+  const sync = () => {
+    const ft = form.freqType.value;
+    $('#daysField').hidden = !(ft === 'weekly' || ft === 'days');
+    $('#everyNField').hidden = ft !== 'everyN';
+    const ramp = form.doseMode.value === 'ramp';
+    $('#flatField').hidden = ramp; $('#rampField').hidden = !ramp;
+  };
+  const splitHelp = () => {
+    const ft = form.freqType.value; const days = $$('input[name="days"]:checked', form).length;
+    const spw = ft === 'daily' ? 7 : ft === 'days' ? Math.max(1, days) : ft === 'everyN' ? 7 / Math.max(1, num(form.everyN.value) || 2) : 1;
+    const weekly = form.doseBasis.value === 'weekly';
+    $('#f-dose-label').textContent = weekly ? 'Weekly total (mg)' : 'Dose per shot (mg)';
+    const mg = num(form.doseMg.value);
+    $('#splitHelp').textContent = weekly
+      ? `${n(spw,1)} shot${spw === 1 ? '' : 's'} per week${mg != null ? ` → ${n(mg / spw, 2)} mg per shot` : ''}${form.doseMode.value === 'ramp' ? ' · ramp phases are weekly totals too' : ''}`
+      : `${n(spw,1)} shot${spw === 1 ? '' : 's'} per week${mg != null ? ` → ${n(mg * spw, 1)} mg per week` : ''}`;
+  };
+  form.freqType.addEventListener('change', splitHelp); form.everyN.addEventListener('input', splitHelp); form.doseMg.addEventListener('input', splitHelp);
+  $$('input[name="days"], input[name="doseBasis"], input[name="doseMode"]', form).forEach(el => el.addEventListener('change', splitHelp));
+  $$('[data-cycle]', form).forEach(b => b.addEventListener('click', () => {
+    const v = b.dataset.cycle; if (!v) { form.cycleOn.value = ''; form.cycleOff.value = ''; form.cycleCount.value = ''; return; }
+    const [on, off, u] = v.split(','); form.cycleOn.value = on; form.cycleOff.value = off; form.cycleOnUnit.value = u === 'd' ? 'days' : 'weeks'; form.cycleOffUnit.value = u === 'd' ? 'days' : 'weeks';
+  }));
+  $$('[data-split]', form).forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.split; const set = ds => { form.freqType.value = 'days'; $$('input[name="days"]', form).forEach(c => c.checked = ds.includes(+c.value)); };
+    if (k === '1') { form.freqType.value = 'weekly'; $$('input[name="days"]', form).forEach(c => c.checked = false); }
+    else if (k === '2') set([1, 4]); else if (k === '3') set([1, 3, 5]); else if (k === '7') form.freqType.value = 'daily';
+    else if (k === 'eod') { form.freqType.value = 'everyN'; form.everyN.value = 2; }
+    sync(); splitHelp();
+  }));
+  splitHelp();
+  form.freqType.addEventListener('change', sync);
+  $$('input[name="doseMode"]', form).forEach(r => r.addEventListener('change', sync));
+  $('#addPhase').addEventListener('click', () => { const last = $$('.phase-row', $('#phases')).pop(); const lastTo = last ? num(last.querySelector('[name="pto"]')?.value) : null; $('#phases').insertAdjacentHTML('beforeend', phaseRow({ from: lastTo ? lastTo + 1 : '', to: null, mg: '' })); });
+  $('#phases').addEventListener('click', e => { const b = e.target.closest('[data-remove]'); if (b) b.closest('.phase-row').remove(); });
+  if (isNew) $('#presetPick').addEventListener('change', e => {
+    const pr = PRESETS[e.target.value]; if (!pr) return;
+    form.name.value = pr.name; form.compound.value = pr.compound; form.freqType.value = pr.freq.type;
+    $$('input[name="days"]', form).forEach(c => c.checked = (pr.freq.days || []).includes(+c.value));
+    $$('input[name="doseMode"]', form).forEach(r => r.checked = r.value === pr.doseMode);
+    form.doseMg.value = pr.doseMg ?? '';
+    $$('input[name="doseBasis"]', form).forEach(r => r.checked = r.value === (pr.doseBasis || 'shot'));
+    $$('.phase-row', $('#phases')).filter(r => r.querySelector('[name="pmg"]')).forEach(r => r.remove());
+    $('#phases').insertAdjacentHTML('beforeend', (pr.phases?.length ? pr.phases : [{from:1,to:null,mg:''}]).map(phaseRow).join(''));
+    form.recipeMg.value = pr.recipe?.totalMg ?? ''; form.recipeMl.value = pr.recipe?.waterMl ?? '';
+    $$('input[name="vialType"]', form).forEach(r => r.checked = r.value === (pr.vialType || 'lyo'));
+    form.halfLifeDays.value = pr.halfLifeDays ?? ''; form.absorbDays.value = pr.absorbDays ?? ''; form.ester.value = pr.ester || '';
+    if (pr.syringe) { form.syrUnits.value = pr.syringe.units; form.gaugeG.value = pr.syringe.gaugeG; form.lengthMm.value = pr.syringe.lengthMm; }
+    syncVialType(); splitHelp();
+    form.notes.value = pr.notes || '';
+    if (!form.startDate.value) form.startDate.value = ISO(new Date());
+    form.endDate.value = '';
+    if (pr.cycle) { form.cycleOn.value = pr.cycle.onDays % 7 === 0 ? pr.cycle.onDays / 7 : pr.cycle.onDays; form.cycleOnUnit.value = pr.cycle.onDays % 7 === 0 ? 'weeks' : 'days'; form.cycleOff.value = pr.cycle.offDays % 7 === 0 ? pr.cycle.offDays / 7 : pr.cycle.offDays; form.cycleOffUnit.value = pr.cycle.offDays % 7 === 0 ? 'weeks' : 'days'; form.cycleCount.value = pr.cycle.count || ''; } else { form.cycleOn.value = ''; form.cycleOff.value = ''; form.cycleCount.value = ''; }
+    sync();
+    toast(`${pr.name || 'Custom'} baseline filled in. Check the dates, then Save.`);
+  });
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const ft = fd.get('freqType');
+    const days = fd.getAll('days').map(Number).sort();
+    const doseMode = fd.get('doseMode');
+    const phases = doseMode === 'ramp' ? $$('.phase-row', $('#phases')).filter(r => r.querySelector('[name="pmg"]')).map(r => ({ from: num(r.querySelector('[name="pfrom"]').value), to: num(r.querySelector('[name="pto"]').value), mg: num(r.querySelector('[name="pmg"]').value) })).filter(x => x.from != null && x.mg != null).sort((a,b) => a.from - b.from) : [];
+    const obj = {
+      ...p, name: fd.get('name').trim(), compound: fd.get('compound').trim(), status: fd.get('status'),
+      startDate: fd.get('startDate') || null, endDate: fd.get('endDate') || null,
+      freq: { type: ft, days: (ft === 'weekly' || ft === 'days') ? days : [], everyN: num(fd.get('everyN')) || 2 },
+      doseMode, doseMg: doseMode === 'flat' ? num(fd.get('doseMg')) : null, phases, doseBasis: fd.get('doseBasis') || 'shot',
+      recipe: { totalMg: num(fd.get('recipeMg')), waterMl: num(fd.get('recipeMl')), capacityMl: num(fd.get('capacityMl')) }, vialType: fd.get('vialType') || 'lyo',
+      halfLifeDays: num(fd.get('halfLifeDays')), absorbDays: num(fd.get('absorbDays')), ester: fd.get('ester') || null,
+      cycle: (() => { const on = num(fd.get('cycleOn')); if (!(on > 0)) return null; const mul = u => u === 'days' ? 1 : 7; const off = num(fd.get('cycleOff')) || 0; return { onDays: Math.round(on * mul(fd.get('cycleOnUnit'))), offDays: Math.round(off * mul(fd.get('cycleOffUnit'))), count: num(fd.get('cycleCount')) || null }; })(),
+      syringe: { units: num(fd.get('syrUnits')) || 100, gaugeG: num(fd.get('gaugeG')) || 31, lengthMm: num(fd.get('lengthMm')) || 12.7 },
+      notes: fd.get('notes').trim(), order: p.order ?? programs().length, updatedAt: new Date().toISOString()
+    };
+    if (!obj.name) return;
+    const clash = programs().find(x => x.id !== p.id && x.name.trim().toLowerCase() === obj.name.toLowerCase());
+    if (clash) { form.name.setCustomValidity('A program with this name already exists'); form.name.reportValidity(); form.name.addEventListener('input', () => form.name.setCustomValidity(''), { once: true }); return; }
+    const id = p.id || uid();
+    closeModal();
+    await store.put('programs', id, obj);
+    toast(isNew ? 'Program added' : 'Program saved');
+  });
+}
+function phaseRow(ph) {
+  return `<div class="phase-row"><input name="pfrom" type="number" min="1" placeholder="1" value="${ph.from ?? ''}" aria-label="From week"><input name="pto" type="number" min="1" placeholder="∞" value="${ph.to ?? ''}" aria-label="To week"><input name="pmg" type="number" step="0.001" min="0" placeholder="mg" value="${ph.mg ?? ''}" aria-label="mg per shot"><button type="button" class="btn sm ghost danger" data-remove aria-label="Remove phase">✕</button></div>`;
+}
+
+function vialForm(v, programId, opts = {}) {
+  const isNew = !v.id;
+  const p = store.data.programs[v.programId || programId];
+  const totalMg = v.totalMg ?? p?.recipe?.totalMg ?? '';
+  const waterMl = v.waterMl ?? p?.recipe?.waterMl ?? '';
+  const isMixed = opts.mixNow ? true : (isNew ? !opts.unmixed : !!v.mixedDate);
+  const sol = p?.vialType === 'solution';
+  if (opts.mixNow) { v = { ...v, mixedDate: ISO(new Date()) }; }
+  openModal(`<h2>${isNew ? 'New vial' : 'Edit vial'}</h2>
+  <form class="form" id="vialForm">
+    <div class="grid2">
+      <div class="field"><label for="v-prog">Program</label><select id="v-prog" name="programId">${programs().map(x => `<option value="${x.id}" ${(v.programId||programId)===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}${v.programId && !store.data.programs[v.programId] ? `<option value="${esc(v.programId)}" selected>(deleted program)</option>` : ''}</select></div>
+      <div class="field"><label for="v-label">Label</label><input id="v-label" name="label" value="${esc(v.label || (p ? p.name + ' vial' : ''))}" placeholder="e.g. Reta #3"></div>
+    </div>
+    <div class="field"><label for="v-mg">${sol ? 'Total mg in vial' : 'Peptide in vial (mg)'}</label><input id="v-mg" name="totalMg" type="number" step="0.01" min="0" required value="${totalMg}" style="max-width:220px"></div>
+    <div class="field"><div class="checks"><label><input type="radio" name="mixed" value="yes" ${isMixed ? 'checked' : ''}> ${sol ? 'Opened / in use' : 'Reconstituted'}</label><label><input type="radio" name="mixed" value="no" ${isMixed ? '' : 'checked'}> ${sol ? 'Unopened (in stock)' : 'Not mixed yet (in stock)'}</label></div></div>
+    <div id="v-mixfields" ${isMixed ? '' : 'hidden'}>
+    <div class="grid2">
+      <div class="field"><label for="v-ml">${sol ? 'Vial volume (mL)' : 'BAC water added (mL)'}</label><input id="v-ml" name="waterMl" type="number" step="0.01" min="0" value="${waterMl}"></div>
+      <div class="field"><label>Concentration</label><div class="num" id="v-conc" style="padding:9px 0;font-weight:600">—</div></div>
+    </div>
+    <div class="grid2" style="margin-top:12px">
+      <div class="field"><label for="v-date">${sol ? 'Opened on' : 'Mixed on'}</label><input id="v-date" name="mixedDate" type="date" value="${esc(v.mixedDate || ISO(new Date()))}"></div>
+      <div class="field"><label for="v-discard">Discard after (days)</label><input id="v-discard" name="discardDays" type="number" min="1" value="${v.discardDays ?? store.settings.discardDays}"></div>
+    </div>
+    </div>
+    <div class="field"><label for="v-notes">Notes</label><input id="v-notes" name="notes" value="${esc(v.notes||'')}" placeholder="Lot, supplier, fridge shelf…"></div>
+    ${!isNew ? `<div class="checks"><label><input type="checkbox" name="discarded" ${v.discarded?'checked':''}> Discarded / finished</label></div>` : ''}
+    <div class="modal-actions">${!isNew ? `<button type="button" class="btn danger ghost" data-action="del-vial" data-id="${v.id}">Delete</button><span class="spacer"></span>` : ''}<button type="button" class="btn" data-action="close">Cancel</button><button type="submit" class="btn primary">Save</button></div>
+  </form>`);
+  const form = $('#vialForm');
+  const cap = p?.recipe?.capacityMl;
+  const upd = () => { const a = num(form.totalMg.value), b = num(form.waterMl.value); $('#v-conc').innerHTML = (a > 0 && b > 0 ? `${n(a/b,2)} mg/mL · 1 mg = ${n(100/(a/b),1)} u` : '—') + (cap > 0 && b > cap ? ` <span class="chip bad">exceeds ${n(cap)} mL vial</span>` : ''); };
+  form.totalMg.addEventListener('input', upd); form.waterMl.addEventListener('input', upd); upd();
+  const syncMix = () => { const m = form.mixed.value === 'yes'; $('#v-mixfields').hidden = !m; form.waterMl.required = m; form.mixedDate.required = m; };
+  $$('input[name="mixed"]', form).forEach(r => r.addEventListener('change', syncMix)); syncMix();
+  form.addEventListener('submit', async e => {
+    e.preventDefault(); const fd = new FormData(form);
+    const mixed = fd.get('mixed') === 'yes';
+    const obj = { ...v, programId: fd.get('programId'), label: fd.get('label').trim(), totalMg: num(fd.get('totalMg')), waterMl: mixed ? num(fd.get('waterMl')) : null, mixedDate: mixed ? fd.get('mixedDate') : null, discardDays: num(fd.get('discardDays')) || store.settings.discardDays, notes: fd.get('notes').trim(), discarded: fd.get('discarded') === 'on' };
+    if (isNew) obj.createdAt = new Date().toISOString();
+    closeModal(); await store.put('vials', v.id || uid(), obj); toast(isNew ? (mixed ? 'Vial added' : 'Vial added to stock') : (opts.mixNow ? 'Vial mixed' : 'Vial saved'));
+  });
+}
+
+function logForm(programId) {
+  const ps = programs().filter(p => p.status !== 'done');
+  if (!ps.length) { toast('Add a program first'); return; }
+  const pid = programId && store.data.programs[programId] ? programId : (ps.find(p => p.status==='active') || ps[0]).id;
+  const now = new Date(); const z = k => String(k).padStart(2,'0');
+  const localNow = `${ISO(now)}T${z(now.getHours())}:${z(now.getMinutes())}`;
+  openModal(`<h2>Log a dose</h2>
+  <form class="form" id="logForm">
+    <div class="grid2">
+      <div class="field"><label for="l-prog">Program</label><select id="l-prog" name="programId">${ps.map(x => `<option value="${x.id}" ${x.id===pid?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>
+      <div class="field"><label for="l-when">When</label><input id="l-when" name="at" type="datetime-local" value="${localNow}" required></div>
+    </div>
+    <div class="grid3">
+      <div class="field"><label for="l-mg">Dose (mg)</label><input id="l-mg" name="doseMg" type="number" step="0.001" min="0" required></div>
+      <div class="field"><label for="l-units">Units drawn</label><input id="l-units" name="units" type="number" step="0.1" min="0"></div>
+      <div class="field"><label>Vial</label><div class="small" id="l-vial" style="padding:9px 0">—</div></div>
+    </div>
+    <div id="l-gauge"></div>
+    <div class="grid2">
+      <div class="field"><label for="l-site">Injection site</label><select id="l-site" name="site"><option value="">—</option>${store.settings.sites.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}</select></div>
+      <div class="field"><label for="l-note">Note</label><input id="l-note" name="note" placeholder="How it felt, side effects, fasted…"></div>
+    </div>
+    <div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="submit" class="btn good">Save dose</button></div>
+  </form>`);
+  const form = $('#logForm');
+  let vialId = null, conc = NaN, lock = false;
+  const setup = () => {
+    const p = store.data.programs[form.programId.value]; const d = P((form.at.value || localNow).slice(0,10));
+    const v = activeVial(p); vialId = v ? v.id : null; conc = v ? vialStats(v).conc : NaN;
+    $('#l-vial').innerHTML = v ? `<b>${esc(v.label||'Vial')}</b><br><span class="muted num">${n(conc,2)} mg/mL</span>` : `<span class="chip warn">No vial on file</span>`;
+    const mg = doseFor(p, d); if (mg != null) form.doseMg.value = mg;
+    form.site.value = suggestSite(p) || '';
+    fromMg();
+  };
+  const fromMg = () => { if (lock) return; lock = true; const mg = num(form.doseMg.value); form.units.value = (mg != null && Number.isFinite(conc)) ? n(drawFor(mg, conc).units, 1) : ''; drawGauge(); lock = false; };
+  const fromUnits = () => { if (lock) return; lock = true; const u = num(form.units.value); if (u != null && Number.isFinite(conc)) form.doseMg.value = n(u / 100 * conc, 3); drawGauge(); lock = false; };
+  const drawGauge = () => { const u = num(form.units.value); $('#l-gauge').innerHTML = u != null ? gauge(u, 380, syringeFor(store.data.programs[form.programId.value])) : ''; };
+  form.programId.addEventListener('change', setup); form.at.addEventListener('change', setup);
+  form.doseMg.addEventListener('input', fromMg); form.units.addEventListener('input', fromUnits);
+  setup();
+  form.addEventListener('submit', async e => {
+    e.preventDefault(); const fd = new FormData(form);
+    const at = new Date(fd.get('at')); if (isNaN(at)) return;
+    const mg = num(fd.get('doseMg')); if (mg == null) return;
+    const units = num(fd.get('units'));
+    const obj = { programId: fd.get('programId'), vialId, at: at.toISOString(), doseMg: mg, units, ml: units != null ? units / 100 : null, site: fd.get('site'), note: fd.get('note').trim(), createdAt: new Date().toISOString() };
+    closeModal(); await store.put('logs', uid(), obj); toast('Dose logged');
+  });
+}
+
+function calcModal(pid) {
+  const p = store.data.programs[pid];
+  if (p && calcDetail.forProgram !== pid) {
+    const c = concFor(p); const v = c.vial; const t = today();
+    const mgNow = p.status === 'active' ? doseFor(p, t) : (doseRange(p)?.lo ?? null);
+    calcDetail.vialMg = v ? String(v.totalMg) : (p.recipe?.totalMg != null ? String(p.recipe.totalMg) : '');
+    calcDetail.waterMl = v ? String(v.waterMl) : (p.recipe?.waterMl != null ? String(p.recipe.waterMl) : '');
+    calcDetail.doseMg = mgNow != null ? String(mgNow) : '';
+    calcDetail.forProgram = pid;
+  }
+  openModal(`<h2>Calculator${p ? ' · ' + esc(p.name) : ''}</h2><p class="small muted" style="margin-bottom:10px">Scratch math, nothing is saved. Preloaded from ${p && concFor(p).vial ? 'the current vial' : 'the default recipe'}.</p><div id="modal-calc"></div><div class="modal-actions"><button type="button" class="btn" data-action="close">Close</button></div>`);
+  mountCalc($('#modal-calc'), calcDetail, { compact: true, prefix: 'mc', syr: p ? syringeFor(p) : null, capacityMl: p?.recipe?.capacityMl });
+}
+function settingsForm() {
+  const s = store.settings;
+  openModal(`<h2>Settings</h2><form class="form" id="settingsForm">
+    <div class="grid2">
+      <div class="field"><label for="s-syr">Default syringe for new programs</label><select id="s-syr" name="syringeUnits">${[[100,'1 mL · 100 units (U-100)'],[50,'0.5 mL · 50 units'],[30,'0.3 mL · 30 units']].map(([v,l]) => `<option value="${v}" ${s.syringeUnits==v?'selected':''}>${l}</option>`).join('')}</select><div class="help">Each program can override this in its own settings. Units are always 0.01 mL.</div></div>
+      <div class="field"><label for="s-disc">Default discard window (days)</label><input id="s-disc" name="discardDays" type="number" min="1" value="${s.discardDays}"></div>
+    </div>
+    <div class="field"><label for="s-sites">Injection sites (one per line, rotated least-recent first)</label><textarea id="s-sites" name="sites">${esc(s.sites.join('\n'))}</textarea></div>
+    <div class="small muted">Storage: ${store.mode === 'cloud' ? 'synced through this page, so any device that opens it sees the same data.' : 'this browser only. Use Export on the Logs tab to move data.'}</div>
+    <div class="row" style="margin-top:6px"><button type="button" class="btn sm danger" data-action="reset-all">Reset all data…</button><span class="small muted">Deletes every program, vial, dose, lab result and setting${store.mode === 'cloud' ? ' from the shared database' : ' from this browser'}.</span></div>
+    <div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="submit" class="btn primary">Save</button></div></form>`);
+  $('#settingsForm').addEventListener('submit', async e => {
+    e.preventDefault(); const fd = new FormData(e.target);
+    closeModal();
+    await store.put('settings', 'main', { syringeUnits: num(fd.get('syringeUnits')) || 100, discardDays: num(fd.get('discardDays')) || 28, sites: fd.get('sites').split('\n').map(x => x.trim()).filter(Boolean) });
+    toast('Settings saved');
+  });
+}
+
+function deleteProgramConfirm(id) {
+  const p = store.data.programs[id]; if (!p) return;
+  const pv = vials().filter(v => v.programId === id); const nLogs = logs().filter(l => l.programId === id).length;
+  openModal(`<h2>Delete ${esc(p.name)}?</h2>
+    <p>This removes the program <b>and everything attached to it</b>:</p>
+    <ul style="margin:8px 0 12px 18px;padding:0;line-height:1.7">
+      <li><b>${pv.length}</b> vial${pv.length === 1 ? '' : 's'}${pv.length ? ` (${pv.map(v => esc(v.label || 'Vial')).join(', ')})` : ''} — deleted with the program</li>
+      <li><b>${nLogs}</b> logged dose${nLogs === 1 ? '' : 's'} — deleted, including the history in Logs and graphs</li>
+    </ul>
+    <div class="note-box" style="background:var(--warn-soft)">If this plan is simply finished and you want to keep the history, don't delete it: use <b>Mark complete</b> instead. A completed plan keeps its doses, vials and charts and drops out of Today.</div>
+    <p class="small muted" style="margin-top:10px">There is no undo.</p>
+    <div class="checks" style="margin-top:12px"><label><input type="checkbox" id="delAck"> I understand the vials and dose history will be deleted too</label></div>
+    <div class="modal-actions">${p.status !== 'done' ? `<button type="button" class="btn" id="delComplete">Mark complete instead</button>` : ''}<span class="spacer"></span><button type="button" class="btn" data-action="close">Cancel</button><button type="button" class="btn danger" id="delGo" disabled>Delete everything</button></div>`);
+  const mc = $('#delComplete'); if (mc) mc.addEventListener('click', async () => { closeModal(); await store.put('programs', id, { ...p, status: 'done' }); toast(`${p.name} marked complete`); });
+  $('#delAck').addEventListener('change', e => { $('#delGo').disabled = !e.target.checked; });
+  $('#delGo').addEventListener('click', async () => {
+    closeModal();
+    for (const v of pv) await store.del('vials', v.id);
+    for (const l of logs().filter(l => l.programId === id)) await store.del('logs', l.id);
+    await store.del('programs', id);
+    if (currentView === 'program' && detailId === id) showView('today');
+    toast(`Deleted ${p.name}, ${pv.length} vial${pv.length === 1 ? '' : 's'} and ${nLogs} dose${nLogs === 1 ? '' : 's'}`);
+  });
+}
+function resetConfirm() {
+  const counts = ['programs', 'vials', 'logs', 'labs'].map(c => `${Object.keys(store.data[c] || {}).length} ${c === 'logs' ? 'doses' : c === 'labs' ? 'lab results' : c}`).join(', ');
+  openModal(`<h2>Reset all data?</h2><p>This deletes <b>${counts}</b> and your settings. There is no undo.</p><p class="small muted" style="margin-top:8px">If you might want any of it back, press Cancel and use Export on the Logs tab first.</p>
+    <div class="checks" style="margin-top:12px"><label><input type="checkbox" id="resetAck"> I understand everything will be deleted</label></div>
+    <div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="button" class="btn danger" id="resetGo" disabled>Delete everything</button></div>`);
+  $('#resetAck').addEventListener('change', e => { $('#resetGo').disabled = !e.target.checked; });
+  $('#resetGo').addEventListener('click', async () => { closeModal(); await wipeAllData(); });
+}
+function confirmBox(msg, onYes) {
+  openModal(`<h2>Are you sure?</h2><p>${esc(msg)}</p><div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="button" class="btn danger" id="confirmYes">Delete</button></div>`);
+  $('#confirmYes').addEventListener('click', async () => { closeModal(); await onYes(); });
+}
+
+async function exportData() {
+  const payload = JSON.stringify({ exportedAt: new Date().toISOString(), ...store.data }, null, 2);
+  const filename = `peptide-tracker-${ISO(new Date())}.json`;
+  if (store.downloads) { try { await store.downloads.save({ filename, data: payload }); toast('Exported'); return; } catch (e) { if (e && e.code === 'cancelled') return; } }
+  try { await navigator.clipboard.writeText(payload); toast('Copied JSON to clipboard'); } catch { toast('Export unavailable here'); }
+}
+function importData() {
+  openModal(`<h2>Import</h2><p class="small muted" style="margin-bottom:10px">Paste an export, or choose the file. Entries with the same id are overwritten; nothing else is removed.</p>
+    <div class="form"><input type="file" id="importFile" accept="application/json"><div class="field"><textarea id="importText" placeholder='{"programs":…}'></textarea></div></div>
+    <div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="button" class="btn primary" id="importGo">Import</button></div>`);
+  $('#importFile').addEventListener('change', e => { const f = e.target.files[0]; if (f) f.text().then(t => $('#importText').value = t); });
+  $('#importGo').addEventListener('click', async () => {
+    let j; try { j = JSON.parse($('#importText').value); } catch { toast('That is not valid JSON'); return; }
+    closeModal(); let count = 0;
+    for (const col of ['programs','vials','logs','settings','labs']) for (const [id, obj] of Object.entries(j[col] || {})) { await store.put(col, id, obj); count++; }
+    toast(`Imported ${count} records`);
+  });
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', async e => {
+  const tab = e.target.closest('.tab[data-view]'); if (tab) { showView(tab.dataset.view, tab.dataset.id); if (tab.dataset.view === 'program') renderProgramDetail(); window.scrollTo(0, 0); return; }
+  const b = e.target.closest('[data-action]'); if (!b) return;
+  const a = b.dataset.action, id = b.dataset.id;
+  const pm = store.data.programs, vm = store.data.vials;
+  switch (a) {
+    case 'close': closeModal(); break;
+    case 'open-program': e.preventDefault(); showView('program', id); renderProgramDetail(); window.scrollTo(0, 0); break;
+    case 'back': if (history.state && history.length > 1) history.back(); else showView('today'); break;
+    case 'settings': settingsForm(); break;
+    case 'calc': calcModal(id); break;
+    case 'lab': labForm(b.dataset.preset); break;
+    case 'del-lab': confirmBox('Delete this lab result?', () => store.del('labs', id)); break;
+    case 'add-program': programForm({}); break;
+    case 'edit-program': programForm(pm[id] || {}); break;
+    case 'activate': await store.put('programs', id, { ...pm[id], status:'active', startDate: pm[id].startDate || ISO(new Date()) }); toast('Activated'); break;
+    case 'set-status': await store.put('programs', id, { ...pm[id], status: b.dataset.status }); toast('Updated'); break;
+    case 'del-program': deleteProgramConfirm(id); break;
+    case 'add-vial': vialForm({}, b.dataset.program || (programs()[0] || {}).id); break;
+    case 'edit-vial': vialForm(vm[id] || {}); break;
+    case 'mix-vial': vialForm(vm[id] || {}, null, { mixNow: true }); break;
+
+    case 'add-stock': vialForm({}, b.dataset.program || (programs()[0] || {}).id, { unmixed: true }); break;
+    case 'discard-vial': await store.put('vials', id, { ...vm[id], discarded: true, discardedAt: new Date().toISOString() }); toast('Vial marked discarded'); break;
+    case 'del-vial': confirmBox('Delete this vial record?', () => store.del('vials', id)); break;
+    case 'del-vial-now': confirmBox(`Delete vial "${vm[id]?.label || 'Vial'}"? Doses logged from it stay in the log.`, () => store.del('vials', id)); break;
+    case 'reset-all': resetConfirm(); break;
+    case 'log': logForm(id); break;
+    case 'complete': await completeDose(id, b.dataset.date); break;
+    case 'skip': await skipDose(id, b.dataset.date); break;
+    case 'unskip': await unskipDose(id, b.dataset.date); break;
+    case 'del-log': confirmBox('Delete this log entry?', () => store.del('logs', id)); break;
+    case 'export': exportData(); break;
+    case 'import': importData(); break;
+  }
+});
+
+render();
+store.init();
+})();
+</script>
