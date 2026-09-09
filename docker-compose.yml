@@ -1,0 +1,33 @@
+services:
+  # Tailscale sidecar: the container joins your tailnet as its own machine
+  # ("health-me"), and Tailscale Serve terminates HTTPS with an
+  # auto-provisioned ts.net certificate. The app is reachable ONLY over the
+  # tailnet:
+  #   https://health-me.<your-tailnet>.ts.net
+  # First run needs TS_AUTHKEY in .env (see .env.example); after that the
+  # node identity persists in the tailscale-state volume and the key may
+  # expire.
+  tailscale:
+    image: tailscale/tailscale:latest
+    hostname: health-me
+    environment:
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "true"
+      TS_SERVE_CONFIG: /config/serve.json
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+      - ./tailscale-serve.json:/config/serve.json:ro
+    restart: unless-stopped
+
+  health-me:
+    build: .
+    # Shares the sidecar's network namespace: nginx binds 127.0.0.1:8080
+    # (see nginx.conf), so the ONLY way in is through the Serve proxy above.
+    network_mode: service:tailscale
+    depends_on:
+      - tailscale
+    restart: unless-stopped
+
+volumes:
+  tailscale-state:

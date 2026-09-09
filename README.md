@@ -47,6 +47,28 @@ python -m http.server 8000
 
 Then visit `http://localhost:8000`.
 
+## Docker + Tailscale
+
+Same sidecar pattern as `../autotrader`: a `tailscale` container joins the
+tailnet as its own machine (`health-me`) and terminates HTTPS via Tailscale
+Serve with an auto-provisioned `ts.net` cert; the `health-me` app container
+shares its network namespace and binds nginx to `127.0.0.1:8080` only, so
+the app is reachable *exclusively* over the tailnet — a raw hit on the
+node's tailnet IP:8080 is refused, there's no host port exposed at all.
+
+Setup:
+
+1. Generate a reusable Tailscale auth key at
+   [login.tailscale.com/admin/settings/keys](https://login.tailscale.com/admin/settings/keys)
+   (a tag like `tag:health-me` is ideal so ACLs can target it).
+2. `cp .env.example .env` and fill in `TS_AUTHKEY`.
+3. `docker compose up -d --build`.
+4. Visit `https://health-me.<your-tailnet>.ts.net`.
+
+After the first successful start the node identity persists in the
+`tailscale-state` volume, so `TS_AUTHKEY` may expire without breaking
+anything — it's only needed again if that volume is removed.
+
 **Data file (Chromium only)**: when opened outside the artifact (i.e. not
 cloud-synced), the Peptide Tracker can keep its data in a JSON file you
 control instead of only browser storage — set it up from Settings →

@@ -1,0 +1,10 @@
+.git
+.claude
+.github
+PLAN.md
+README.md
+docker-compose.yml
+Dockerfile
+tailscale-serve.json
+.env
+.env.*
