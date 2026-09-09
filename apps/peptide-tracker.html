@@ -82,7 +82,7 @@
   .jump { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:8px; padding:8px 0; margin-bottom:8px; background:var(--bg); border-bottom:1px solid var(--border); }
   .tabs { display:flex; flex-wrap:wrap; gap:4px; align-items:center; min-width:0; }
   .tab .mark { display:inline-block; width:8px; height:8px; border-radius:50%; margin-left:6px; vertical-align:middle; }
-  .tab .mark.due { background:var(--warn); } .tab .mark.missed { background:var(--bad); }
+  .tab .mark.due { background:var(--accent); } .tab .mark.missed { background:var(--bad); }
   .tab[aria-selected="true"] .mark { background:var(--accent-ink); }
   .tab { appearance:none; border:0; background:none; color:var(--muted); font-weight:700; font-size:15px; padding:8px 14px; border-radius:999px; white-space:nowrap; cursor:pointer; }
   .tab:hover { color:var(--ink); background:var(--surface-2); }
@@ -165,13 +165,13 @@
   .dd.future small { color:var(--muted); }
   .dd.done b { background:var(--good); border-color:var(--good); }
   .dd.missed b { background:var(--bad); border-color:var(--bad); }
-  .dd.due b { background:var(--warn); border-color:var(--warn); }
+  .dd.due b { background:var(--accent); border-color:var(--accent); }
   .dd.skipped b { background:var(--surface); border-color:var(--border); background-image:linear-gradient(135deg, transparent 45%, var(--faint) 45%, var(--faint) 55%, transparent 55%); }
   .dd.today b { outline:2px solid var(--accent); outline-offset:1px; }
   .dd.today small { color:var(--accent); font-weight:600; }
   .ddots .gap { flex:none; align-self:stretch; display:flex; align-items:center; padding:0 6px; margin:0 4px; border-left:1px dashed var(--border); border-right:1px dashed var(--border); }
   .ddots .gap i { font-size:9px; font-style:normal; color:var(--faint); white-space:nowrap; letter-spacing:.04em; text-transform:uppercase; }
-  .dot.due { background:var(--warn); border-color:var(--warn); }
+  .dot.due { background:var(--accent); border-color:var(--accent); }
   .dot.future { background:var(--surface); border-color:var(--accent-line); }
   .dot.today { outline:2px solid var(--accent); outline-offset:1px; }
   @media (max-width:640px) { .plan-row { grid-template-columns:1fr; grid-template-areas:"who" "mid" "stats" "days" "acts"; } .plan-row:not(.active) { grid-template-areas:"who" "mid" "stats" "acts"; } }
@@ -1476,7 +1476,7 @@ function dueTile(p, d) {
   let vialLine;
   if (!v) vialLine = stockVials(p).length ? `<span class="chip warn">Vial in stock, not mixed</span> <button class="btn sm primary" data-action="mix-vial" data-id="${stockVials(p)[0].id}">Mix now</button>` : `<span class="chip warn">No vial on file</span>`;
   else vialLine = `${esc(v.label)}${vs.expired ? ' · <span class="chip bad">expired</span>' : (vs.daysLeft != null && vs.daysLeft <= 5 ? ` · <span class="chip warn">${vs.daysLeft} d left</span>` : '')}${mg != null && vs.remaining < mg ? ' · <span class="chip warn">not enough left</span>' : ''}`;
-  const status = done.length ? `<span class="chip good">✓ ${fmtTime(done[0].at)}${done[0].site ? ' · ' + esc(done[0].site) : ''}</span>` : skipped ? '<span class="chip plain">Skipped</span>' : '<span class="chip warn">Due</span>';
+  const status = done.length ? `<span class="chip good">✓ ${fmtTime(done[0].at)}${done[0].site ? ' · ' + esc(done[0].site) : ''}</span>` : skipped ? '<span class="chip plain">Skipped</span>' : '<span class="chip accent">Due</span>';
   const stats = dr
     ? `<div class="segs"><div class="seg primary"><div class="k">Units</div><div class="v">${n(dr.units,1)} <small>u</small></div></div><div class="seg"><div class="k">Draw</div><div class="v">${n(dr.ml,2)} <small>cc</small></div></div><div class="seg"><div class="k">Dose</div><div class="v">${n(mg,2)} <small>mg</small></div></div></div>`
     : mg != null ? `<div class="segs"><div class="seg primary"><div class="k">Dose</div><div class="v">${n(mg,2)} <small>mg</small></div></div></div><div class="seg-note">add a vial for units</div>` : `<div class="small muted">No dose set</div>`;
@@ -1564,17 +1564,27 @@ function planSummary(p) {
   </article>`;
 }
 
+let showDoneToday = false;
+try { showDoneToday = localStorage.getItem('pt-today-done') === '1'; } catch {}
+function toggleDoneToday() {
+  showDoneToday = !showDoneToday;
+  try { localStorage.setItem('pt-today-done', showDoneToday ? '1' : '0'); } catch {}
+  renderToday();
+}
+
 function renderToday() {
   const t = today(); const ps = programs();
   const active = ps.filter(p => p.status === 'active');
   const due = active.filter(p => isDue(p, t));
-  const doneCount = due.filter(p => logsOn(p, t).length || isSkipped(p, t)).length;
+  const resolved = due.filter(p => logsOn(p, t).length || isSkipped(p, t));
+  const pending = due.filter(p => !(logsOn(p, t).length || isSkipped(p, t)));
+  const doneCount = resolved.length;
   const missed = active.reduce((a,p) => a + missedDates(p).length, 0);
   const expiring = vials().filter(v => !v.discarded).map(vialStats).filter(s => s.daysLeft != null && s.daysLeft <= 5).length;
 
   let h = `<div class="section-head"><h2>Today</h2><span class="hint">${new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric'}).format(new Date())}</span></div><div class="strip">
     <div class="tile"><div class="k">Due today</div><div class="v">${due.length}</div></div>
-    <div class="tile good"><div class="k">Done</div><div class="v">${doneCount}</div></div>
+    <div class="tile good${doneCount ? ' click' : ''}" ${doneCount ? 'data-action="toggle-today-done" role="button" tabindex="0"' : ''}><div class="k">Done</div><div class="v">${doneCount}</div></div>
     <div class="tile ${missed ? 'bad' : ''}"><div class="k">Missed · 14 d</div><div class="v">${missed}</div></div>
     <div class="tile ${expiring ? 'warn' : ''}"><div class="k">Vials expiring</div><div class="v">${expiring}</div></div>
   </div>`;
@@ -1583,8 +1593,14 @@ function renderToday() {
     h += `<div class="empty"><p style="font-size:16px;font-weight:700;color:var(--ink)">No programs yet</p><p style="margin:6px 0 14px">Add a program with its dose schedule, then the vial you're drawing from.</p><button class="btn primary" data-action="add-program">Add a program</button></div>`;
     $('#today').innerHTML = h; return;
   }
-  h += `<div class="section"><div class="section-head"><h3>Due today</h3><span class="hint">${due.length ? 'Complete after you inject' : 'Nothing scheduled'}</span></div>`;
-  h += due.length ? `<div class="stack">${due.map(p => dueTile(p, t)).join('')}</div>` : `<div class="card muted small">No doses due today.</div>`;
+  h += `<div class="section"><div class="section-head"><h3>Due today</h3><span class="hint">${pending.length ? 'Complete after you inject' : due.length ? 'All done for today' : 'Nothing scheduled'}</span></div>`;
+  if (pending.length) h += `<div class="stack">${pending.map(p => dueTile(p, t)).join('')}</div>`;
+  else if (!due.length) h += `<div class="card muted small">No doses due today.</div>`;
+  if (resolved.length) {
+    h += showDoneToday
+      ? `<div class="stack" style="margin-top:${pending.length ? '10px' : '0'}">${resolved.map(p => dueTile(p, t)).join('')}</div><button class="btn sm ghost" data-action="toggle-today-done" style="margin-top:8px">Hide completed</button>`
+      : `<button class="btn sm ghost" data-action="toggle-today-done" style="margin-top:${pending.length ? '10px' : '0'}">Click here to see completed today (${resolved.length})</button>`;
+  }
   h += `</div>`;
   $('#today').innerHTML = h;
 }
@@ -2303,6 +2319,7 @@ document.addEventListener('click', async e => {
     case 'settings': settingsForm(); break;
     case 'calc': calcModal(id); break;
     case 'lab': labForm(b.dataset.preset); break;
+    case 'toggle-today-done': toggleDoneToday(); break;
     case 'del-lab': confirmBox('Delete this lab result?', () => store.del('labs', id)); break;
     case 'labscat': labsCat = b.dataset.cat; saveLabsCat(); $('#labs').innerHTML = labsView(); break;
     case 'jump-marker': {
