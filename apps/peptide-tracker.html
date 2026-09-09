@@ -9,6 +9,7 @@
     --ink:#16201D; --muted:#5C6966; --faint:#8C9895;
     --accent:#3D4FC4; --accent-ink:#FFFFFF; --accent-soft:#E4E7FA; --accent-line:#B7BEEF;
     --good:#1F7A4D; --good-soft:#DDF1E6; --warn:#9A6400; --warn-soft:#FFF3CF; --today-soft:#FFF8E1; --bad:#BE3B3B; --bad-soft:#F9E0E0;
+    --chart-line:#0C7489; --chart-band:#DFF1F4;
     --shadow:0 1px 2px rgba(22,32,29,.06), 0 8px 24px rgba(22,32,29,.06);
     --font-display:'Manrope', 'Segoe UI', system-ui, sans-serif;
     --font-body:'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
@@ -22,6 +23,7 @@
       --ink:#E6ECE9; --muted:#A2AEAA; --faint:#6F7B78;
       --accent:#8E9CFF; --accent-ink:#0F1513; --accent-soft:#252B4D; --accent-line:#3F4A8F;
       --good:#6CCB95; --good-soft:#173325; --warn:#F0B35A; --warn-soft:#3A2F14; --today-soft:#2E2812; --bad:#F08080; --bad-soft:#3D1A1A;
+      --chart-line:#5CC8D9; --chart-band:#133238;
       --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
       color-scheme: dark;
     }
@@ -31,6 +33,7 @@
     --ink:#E6ECE9; --muted:#A2AEAA; --faint:#6F7B78;
     --accent:#8E9CFF; --accent-ink:#0F1513; --accent-soft:#252B4D; --accent-line:#3F4A8F;
     --good:#6CCB95; --good-soft:#173325; --warn:#F0B35A; --warn-soft:#3A2F14; --today-soft:#2E2812; --bad:#F08080; --bad-soft:#3D1A1A;
+    --chart-line:#5CC8D9; --chart-band:#133238;
     --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
     color-scheme: dark;
   }
@@ -978,15 +981,15 @@ function labsChart(key, entries, band) {
   const path = pts.map((q, i) => `${i ? 'L' : 'M'}${x(q.t).toFixed(1)},${y(q.v).toFixed(1)}`).join(' ');
   const step = (yMax - yMin) / 3; const nice = Math.pow(10, Math.floor(Math.log10(step))) * (step / Math.pow(10, Math.floor(Math.log10(step))) < 2 ? 1 : step / Math.pow(10, Math.floor(Math.log10(step))) < 5 ? 2 : 5);
   let grid = ''; for (let v = Math.ceil(yMin / nice) * nice; v <= yMax; v += nice) grid += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--divider)"/><text x="${L - 6}" y="${y(v) + 3}" font-size="9" text-anchor="end" fill="var(--muted)" font-family="var(--font-mono)">${n(v, 1)}</text>`;
-  const bandRect = band ? `<rect x="${L}" y="${y(band.refHigh)}" width="${W - L - R}" height="${Math.max(0, y(band.refLow) - y(band.refHigh))}" fill="var(--good-soft)"/>` : '';
-  const dots = pts.map(q => { const bad = q.flag === 'High' || q.flag === 'Low'; return `<circle cx="${x(q.t)}" cy="${y(q.v)}" r="6" fill="var(--surface)"/><circle cx="${x(q.t)}" cy="${y(q.v)}" r="4" fill="${bad ? 'var(--bad)' : 'var(--good)'}"/>`; }).join('');
+  const bandRect = band ? `<rect x="${L}" y="${y(band.refHigh)}" width="${W - L - R}" height="${Math.max(0, y(band.refLow) - y(band.refHigh))}" fill="var(--chart-band)"/>` : '';
+  const dots = pts.map(q => { const bad = q.flag === 'High' || q.flag === 'Low'; return `<circle cx="${x(q.t)}" cy="${y(q.v)}" r="6" fill="var(--surface)"/><circle cx="${x(q.t)}" cy="${y(q.v)}" r="4" fill="${bad ? 'var(--bad)' : 'var(--chart-line)'}"/>`; }).join('');
   const last = pts[pts.length - 1];
   chartData[id] = { pts, L, R, W, x0: from, x1: to, fmt: v => `${n(v, 1)} ${entries[0].unit || ''}`, y, x, snap: true };
   return `<div class="chart" data-chart="${id}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(entries[0].name)} over time">${bandRect}${grid}${yearMarks(from, to, x, T, H, B)}
-    <path d="${path}" fill="none" stroke="var(--good)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}
+    <path d="${path}" fill="none" stroke="var(--chart-line)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}
     <text x="${x(last.t)}" y="${y(last.v) - 10}" font-size="10" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)">${n(last.v, 1)}</text>
     <line class="xh" x1="0" x2="0" y1="${T}" y2="${y(yMin)}" stroke="var(--ink)" opacity="0"/>
-    <circle class="xd" cx="0" cy="0" r="5" fill="var(--good)" stroke="var(--surface)" stroke-width="2" opacity="0"/>
+    <circle class="xd" cx="0" cy="0" r="5" fill="var(--chart-line)" stroke="var(--surface)" stroke-width="2" opacity="0"/>
     <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" class="hit"/>
   </svg><div class="tip" hidden></div></div>`;
 }
