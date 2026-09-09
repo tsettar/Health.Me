@@ -46,3 +46,8 @@ python -m http.server 8000
 ```
 
 Then visit `http://localhost:8000`.
+
+**Data file (Chromium only)**: when opened outside the artifact (i.e. not
+cloud-synced), the Peptide Tracker can keep its data in a JSON file you
+control instead of only browser storage — set it up from Settings →
+Data file → Choose file… or Create file….

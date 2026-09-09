@@ -76,6 +76,7 @@
   .storage i { width:8px; height:8px; border-radius:50%; background:var(--faint); display:inline-block; }
   .storage.cloud i { background:var(--good); }
   .storage.local i { background:var(--warn); }
+  .storage.file i { background:var(--accent); }
 
   /* jump nav */
   .jump { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:8px; padding:8px 0; margin-bottom:8px; background:var(--bg); border-bottom:1px solid var(--border); }
@@ -424,28 +425,143 @@ function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.ad
 /* ---------- storage ---------- */
 const LS_KEY = 'peptide-tracker-v1';
 const DEFAULT_SETTINGS = { syringeUnits: 100, discardDays: 28, sites: ['L abdomen','R abdomen','L thigh','R thigh'] };
+
+/* ---------- local file (File System Access API) ---------- */
+// Saved FileSystemFileHandles can't go in localStorage, so they live in a tiny
+// dedicated IndexedDB database instead.
+const PT_FS_DB = 'pt-fs', PT_FS_STORE = 'handles', PT_FS_KEY = 'data';
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(PT_FS_DB, 1);
+    req.onupgradeneeded = () => { req.result.createObjectStore(PT_FS_STORE); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbGetHandle() {
+  if (!('indexedDB' in window)) return null;
+  try {
+    const db = await idbOpen();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(PT_FS_STORE, 'readonly');
+      const req = tx.objectStore(PT_FS_STORE).get(PT_FS_KEY);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch { return null; }
+}
+async function idbSetHandle(handle) {
+  if (!('indexedDB' in window)) return;
+  const db = await idbOpen();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(PT_FS_STORE, 'readwrite');
+    tx.objectStore(PT_FS_STORE).put(handle, PT_FS_KEY);
+    tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbClearHandle() {
+  if (!('indexedDB' in window)) return;
+  try {
+    const db = await idbOpen();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(PT_FS_STORE, 'readwrite');
+      tx.objectStore(PT_FS_STORE).delete(PT_FS_KEY);
+      tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+    });
+  } catch {}
+}
+
+// Handle whose permission is not yet (re-)granted this session — set when a
+// saved handle exists but needs a user gesture before it can be used.
+let pendingFileHandle = null;
+let fileWriteTimer = null;
+
+function setBadge(mode, name) {
+  const badge = $('#storageBadge');
+  if (!badge) return;
+  badge.onclick = null; badge.style.cursor = '';
+  if (mode === 'cloud') { badge.className = 'storage cloud'; badge.querySelector('span').textContent = 'Synced'; }
+  else if (mode === 'file') { badge.className = 'storage file'; badge.querySelector('span').textContent = `File: ${name || 'data file'}`; }
+  else if (mode === 'reconnect') {
+    badge.className = 'storage local'; badge.querySelector('span').textContent = `File: ${name || 'data file'} — click to reconnect`;
+    badge.style.cursor = 'pointer'; badge.onclick = () => reconnectFile();
+  } else { badge.className = 'storage local'; badge.querySelector('span').textContent = 'This device only'; }
+}
+
+async function reconnectFile() {
+  const handle = pendingFileHandle;
+  if (!handle) { toast('Nothing to reconnect'); return; }
+  let perm;
+  try { perm = await handle.requestPermission({ mode: 'readwrite' }); }
+  catch { toast('Could not request permission'); return; }
+  if (perm !== 'granted') { toast('Permission denied'); return; }
+  pendingFileHandle = null;
+  const ok = await store.connectFile(handle, { write: false });
+  if (ok) toast('Reconnected to ' + handle.name);
+}
+
+function scheduleFileWrite() {
+  if (!store.fileHandle) return;
+  clearTimeout(fileWriteTimer);
+  fileWriteTimer = setTimeout(flushFileWrite, 300);
+}
+async function flushFileWrite() {
+  if (!store.fileHandle) return;
+  try {
+    const writable = await store.fileHandle.createWritable();
+    await writable.write(JSON.stringify(store.data, null, 2));
+    await writable.close();
+  } catch (e) {
+    toast('Lost access to the data file — back to this device only');
+    store.fileHandle = null; store.mode = 'local';
+    await idbClearHandle();
+    setBadge('local');
+  }
+}
+
 const store = {
-  mode: 'loading', db: null, downloads: null,
+  mode: 'loading', db: null, downloads: null, fileHandle: null,
   data: { programs:{}, vials:{}, logs:{}, settings:{}, labs:{} },
   get settings() { return { ...DEFAULT_SETTINGS, ...(this.data.settings.main || {}) }; },
   loadLocal() { try { const raw = localStorage.getItem(LS_KEY); if (raw) this.data = { ...this.data, ...JSON.parse(raw) }; this.data.labs = this.data.labs || {}; } catch {} },
   saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(this.data)); } catch {} },
+  // Reads (or, with opts.write, adopts-and-writes) `handle` as the active data file,
+  // persists it to IndexedDB for next launch, and switches to file mode.
+  async connectFile(handle, opts = {}) {
+    if (!opts.write) {
+      let text;
+      try { const file = await handle.getFile(); text = await file.text(); }
+      catch { toast('Could not read the data file'); return false; }
+      if (text && text.trim()) {
+        let parsed;
+        try { parsed = JSON.parse(text); } catch { toast('That file is not valid JSON'); return false; }
+        this.data = { programs:{}, vials:{}, logs:{}, settings:{}, labs:{}, ...parsed };
+        this.data.labs = this.data.labs || {};
+        this.saveLocal();
+      }
+    }
+    this.fileHandle = handle; this.mode = 'file';
+    try { await idbSetHandle(handle); } catch {}
+    setBadge('file', handle.name);
+    render();
+    if (opts.write) await flushFileWrite();
+    return true;
+  },
   async put(col, id, obj) {
     obj = { ...obj, id };
     if (this.db) { try { await this.db.collection(col).doc(id).set(obj); } catch (e) { toast('Save failed: ' + (e.message || e.code)); throw e; } }
-    else { this.data[col][id] = obj; this.saveLocal(); render(); }
+    else { this.data[col][id] = obj; this.saveLocal(); render(); if (this.mode === 'file') scheduleFileWrite(); }
   },
   async del(col, id) {
     if (this.db) { try { await this.db.collection(col).doc(id).delete(); } catch (e) { toast('Delete failed: ' + (e.message || e.code)); throw e; } }
-    else { delete this.data[col][id]; this.saveLocal(); render(); }
+    else { delete this.data[col][id]; this.saveLocal(); render(); if (this.mode === 'file') scheduleFileWrite(); }
   },
   async init() {
-    const badge = $('#storageBadge');
     let db = null;
     try { db = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch { db = null; }
     if (db) {
       this.db = db; this.mode = 'cloud';
-      badge.className = 'storage cloud'; badge.querySelector('span').textContent = 'Synced';
+      setBadge('cloud');
       let pending = 5;
       const done = () => { if (--pending <= 0 && !this.ready) { this.ready = true; render(); } else if (this.ready) render(); };
       for (const col of ['programs','vials','logs','settings','labs']) {
@@ -457,7 +573,17 @@ const store = {
       setTimeout(() => { if (!this.ready) { this.ready = true; render(); } }, 8000);
     } else {
       this.mode = 'local'; this.loadLocal(); this.ready = true;
-      badge.className = 'storage local'; badge.querySelector('span').textContent = 'This device only';
+      setBadge('local');
+      if ('showOpenFilePicker' in window) {
+        try {
+          const handle = await idbGetHandle();
+          if (handle) {
+            const perm = await handle.queryPermission({ mode: 'readwrite' });
+            if (perm === 'granted') { await this.connectFile(handle, { write: false }); }
+            else { pendingFileHandle = handle; setBadge('reconnect', handle.name); }
+          }
+        } catch {}
+      }
       render();
     }
     try { this.downloads = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch { this.downloads = null; }
@@ -2042,6 +2168,50 @@ function calcModal(pid) {
   openModal(`<h2>Calculator${p ? ' · ' + esc(p.name) : ''}</h2><p class="small muted" style="margin-bottom:10px">Scratch math, nothing is saved. Preloaded from ${p && concFor(p).vial ? 'the current vial' : 'the default recipe'}.</p><div id="modal-calc"></div><div class="modal-actions"><button type="button" class="btn" data-action="close">Close</button></div>`);
   mountCalc($('#modal-calc'), calcDetail, { compact: true, prefix: 'mc', syr: p ? syringeFor(p) : null, capacityMl: p?.recipe?.capacityMl });
 }
+function dataFileBlock() {
+  if (!('showOpenFilePicker' in window) || store.mode === 'cloud') return '';
+  const state = store.mode === 'file'
+    ? `Connected to <b>${esc(store.fileHandle?.name || 'data file')}</b>. Every change is written there automatically (a local copy stays as backup).`
+    : pendingFileHandle
+      ? `Was connected to <b>${esc(pendingFileHandle.name)}</b> — click the storage badge or choose it again below to reconnect.`
+      : `Not connected. Data lives in this browser only.`;
+  return `<div class="field">
+    <label>Data file</label>
+    <div class="small muted">${state}</div>
+    <div class="row" style="margin-top:6px;gap:8px">
+      <button type="button" class="btn sm" data-action="file-choose">Choose file…</button>
+      <button type="button" class="btn sm" data-action="file-create">Create file…</button>
+      ${store.mode === 'file' ? `<button type="button" class="btn sm danger" data-action="file-disconnect">Disconnect</button>` : ''}
+    </div>
+    <div class="help">Keeps your data in a JSON file you control (e.g. in a synced folder) instead of only this browser.</div>
+  </div>`;
+}
+async function chooseFile() {
+  let handle;
+  try { [handle] = await window.showOpenFilePicker({ types: [{ description: 'health.me data', accept: { 'application/json': ['.json'] } }] }); }
+  catch { return; }
+  let perm;
+  try { perm = await handle.requestPermission({ mode: 'readwrite' }); } catch { perm = 'denied'; }
+  if (perm !== 'granted') { toast('Permission needed to use this file'); return; }
+  const ok = await store.connectFile(handle, { write: false });
+  if (ok) { toast('Connected to ' + handle.name); settingsForm(); }
+}
+async function createFile() {
+  let handle;
+  try { handle = await window.showSaveFilePicker({ suggestedName: 'health-me-data.json', types: [{ description: 'health.me data', accept: { 'application/json': ['.json'] } }] }); }
+  catch { return; }
+  const ok = await store.connectFile(handle, { write: true });
+  if (ok) { toast('Created ' + handle.name); settingsForm(); }
+}
+async function disconnectFile() {
+  clearTimeout(fileWriteTimer);
+  store.fileHandle = null; store.mode = 'local';
+  await idbClearHandle();
+  setBadge('local');
+  toast('Disconnected — data stays on this device');
+  settingsForm();
+}
+
 function settingsForm() {
   const s = store.settings;
   openModal(`<h2>Settings</h2><form class="form" id="settingsForm">
@@ -2050,7 +2220,8 @@ function settingsForm() {
       <div class="field"><label for="s-disc">Default discard window (days)</label><input id="s-disc" name="discardDays" type="number" min="1" value="${s.discardDays}"></div>
     </div>
     <div class="field"><label for="s-sites">Injection sites (one per line, rotated least-recent first)</label><textarea id="s-sites" name="sites">${esc(s.sites.join('\n'))}</textarea></div>
-    <div class="small muted">Storage: ${store.mode === 'cloud' ? 'synced through this page, so any device that opens it sees the same data.' : 'this browser only. Use Export on the Logs tab to move data.'}</div>
+    <div class="small muted">Storage: ${store.mode === 'cloud' ? 'synced through this page, so any device that opens it sees the same data.' : store.mode === 'file' ? `written to ${esc(store.fileHandle?.name || 'a data file')} on this device; this browser's storage keeps a backup copy.` : 'this browser only. Use Export on the Logs tab to move data.'}</div>
+    ${dataFileBlock()}
     <div class="row" style="margin-top:6px"><button type="button" class="btn sm danger" data-action="reset-all">Reset all data…</button><span class="small muted">Deletes every program, vial, dose, lab result and setting${store.mode === 'cloud' ? ' from the shared database' : ' from this browser'}.</span></div>
     <div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="submit" class="btn primary">Save</button></div></form>`);
   $('#settingsForm').addEventListener('submit', async e => {
@@ -2168,6 +2339,9 @@ document.addEventListener('click', async e => {
     case 'del-log': confirmBox('Delete this log entry?', () => store.del('logs', id)); break;
     case 'export': exportData(); break;
     case 'import': importData(); break;
+    case 'file-choose': await chooseFile(); break;
+    case 'file-create': await createFile(); break;
+    case 'file-disconnect': await disconnectFile(); break;
   }
 });
 
