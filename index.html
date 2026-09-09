@@ -42,6 +42,7 @@
   .brand span { font-family:var(--font-display); font-weight:800; font-size:14px; letter-spacing:.02em; color:var(--muted); text-transform:uppercase; }
   h1 { font-family:var(--font-display); font-weight:800; font-size:34px; margin:0 0 8px; }
   .sub { color:var(--muted); font-size:15px; margin-bottom:40px; max-width:52ch; }
+  .sub a { color:var(--accent); }
   .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:16px; }
   a.card {
     display:flex; flex-direction:column; gap:10px; padding:22px;
@@ -74,17 +75,12 @@
       <a class="card" href="apps/peptide-tracker.html">
         <div class="icon">&#128137;</div>
         <h2>health.me</h2>
-        <p>Programs, labs and genome in one place &mdash; protocols, vials, dose schedules, injection logs, and a full lab marker catalog with reference ranges.</p>
-        <span class="tag">Open &rarr;</span>
-      </a>
-
-      <a class="card" href="apps/genome-dashboard.html">
-        <div class="icon">&#129516;</div>
-        <h2>Genome Dashboard</h2>
-        <p>23andMe raw data explorer &mdash; traits, health markers, and Promethease results.</p>
+        <p>Programs, labs and genome in one place &mdash; protocols, vials, dose schedules, injection logs, a full lab marker catalog with reference ranges, and a genome screen with 213 findings cross-linked to the markers that watch them.</p>
         <span class="tag">Open &rarr;</span>
       </a>
     </div>
+
+    <p class="sub" style="margin-top:32px;margin-bottom:0;font-size:13px">Archived &mdash; superseded by the Labs and Genome tabs above, kept for reference: <a href="apps/blood-test-dashboard.html">Blood Test Dashboard</a>, <a href="apps/genome-dashboard.html">Genome Dashboard</a>.</p>
 
     <footer>Static hub &mdash; each app is self-contained and works offline. Source: <a href="https://github.com/tsettar/Health.Me">github.com/tsettar/Health.Me</a></footer>
   </div>
