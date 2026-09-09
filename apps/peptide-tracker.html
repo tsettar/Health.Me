@@ -188,6 +188,8 @@
   .section-head h2 { font-size:15px; font-weight:700; }
   .section-head .hint { font-size:12px; color:var(--muted); }
   .stack { display:grid; gap:10px; }
+  .chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; align-items:start; }
+  @media (max-width:900px) { .chart-grid { grid-template-columns:1fr; } }
   .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .spacer { flex:1; }
   .muted { color:var(--muted); }
@@ -1004,7 +1006,7 @@ function labsSection(opts = {}) {
   const keys = Object.keys(groups);
   let h = `<div class="section-head"><h2>${opts.title || 'Labs'}</h2>${opts.hideAdd ? '' : `<div class="row"><button class="btn sm primary" data-action="lab" ${opts.preset ? `data-preset="${opts.preset}"` : ''}>+ Lab result</button></div>`}</div>`;
   if (!keys.length) { h += `<div class="empty small">No lab results yet. Log estradiol, testosterone or anything else you get tested and it charts here.</div>`; return `<section class="sec">${h}</section>`; }
-  h += `<div class="stack">`;
+  h += `<div class="chart-grid">`;
   for (const k of keys) {
     const es = groups[k]; const last = es[es.length - 1]; const prev = es.length > 1 ? es[es.length - 2] : null;
     const delta = prev ? last.value - prev.value : null;
@@ -1244,7 +1246,7 @@ function renderGraphs() {
   const chosen = graphState.keys.map((k, i) => { const a = avail.find(x => x.key === k); const kind = k.split(':')[0]; return { ...a, color: SERIES_COLORS[i % SERIES_COLORS.length], pts: seriesPoints(k, from, to), dense: kind === 'lvl', kind }; });
   if (!chosen.length) h += `<div class="empty small">Tick anything above to plot it. Pick several to compare them on the same timeline.</div>`;
   else if (graphState.mode === 'panels' || chosen.length === 1) {
-    h += `<div class="stack" style="gap:8px">` + chosen.map((sr, i) => {
+    h += `<div class="chart-grid" style="gap:8px">` + chosen.map((sr, i) => {
       const last = sr.pts[sr.pts.length - 1];
       return `<div class="card gpanel"><div class="row" style="margin-bottom:2px"><span class="swatch" style="background:${sr.color}"></span><b>${esc(sr.name)}</b><span class="muted small">${esc(sr.unit)}</span><span class="spacer"></span>${last ? `<span class="num" style="font-weight:600">${n(last.v, 2)}</span><span class="small muted">${sr.dense ? 'now' : fmtDate(new Date(last.t))}</span>` : '<span class="small muted">no data in range</span>'}</div>${sr.pts.length ? drawSeriesChart('g-' + i, [sr], from, to, { height: 150 }) : ''}</div>`;
     }).join('') + `</div>`;
