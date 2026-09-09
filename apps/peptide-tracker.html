@@ -424,6 +424,7 @@ function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.ad
 
 /* ---------- storage ---------- */
 const LS_KEY = 'peptide-tracker-v1';
+const COLLECTIONS = ['programs', 'vials', 'logs', 'settings', 'labs'];
 const DEFAULT_SETTINGS = { syringeUnits: 100, discardDays: 28, sites: ['L abdomen','R abdomen','L thigh','R thigh'] };
 
 /* ---------- local file (File System Access API) ---------- */
@@ -525,8 +526,8 @@ const store = {
   get settings() { return { ...DEFAULT_SETTINGS, ...(this.data.settings.main || {}) }; },
   loadLocal() { try { const raw = localStorage.getItem(LS_KEY); if (raw) this.data = { ...this.data, ...JSON.parse(raw) }; this.data.labs = this.data.labs || {}; } catch {} },
   saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(this.data)); } catch {} },
-  // Reads (or, with opts.write, adopts-and-writes) `handle` as the active data file,
-  // persists it to IndexedDB for next launch, and switches to file mode.
+  // Merges the file into memory by id (file wins on conflicts, nothing local is dropped),
+  // persists the handle to IndexedDB for next launch, switches to file mode and writes the union back.
   async connectFile(handle, opts = {}) {
     if (!opts.write) {
       let text;
@@ -535,8 +536,7 @@ const store = {
       if (text && text.trim()) {
         let parsed;
         try { parsed = JSON.parse(text); } catch { toast('That file is not valid JSON'); return false; }
-        this.data = { programs:{}, vials:{}, logs:{}, settings:{}, labs:{}, ...parsed };
-        this.data.labs = this.data.labs || {};
+        for (const col of COLLECTIONS) this.data[col] = { ...(this.data[col] || {}), ...(parsed[col] || {}) };
         this.saveLocal();
       }
     }
@@ -544,7 +544,7 @@ const store = {
     try { await idbSetHandle(handle); } catch {}
     setBadge('file', handle.name);
     render();
-    if (opts.write) await flushFileWrite();
+    await flushFileWrite();
     return true;
   },
   async put(col, id, obj) {
@@ -564,7 +564,7 @@ const store = {
       setBadge('cloud');
       let pending = 5;
       const done = () => { if (--pending <= 0 && !this.ready) { this.ready = true; render(); } else if (this.ready) render(); };
-      for (const col of ['programs','vials','logs','settings','labs']) {
+      for (const col of COLLECTIONS) {
         db.collection(col).onSnapshot(snap => {
           const o = {}; snap.docs.forEach(d => { if (d.exists) o[d.id] = d.data(); });
           this.data[col] = o; done();
@@ -1740,7 +1740,7 @@ function renderOrphans() {
       <button class="btn sm danger" data-action="del-vial-now" data-id="${v.id}">Delete</button></div>`; }).join('')}</div></section>`;
 }
 async function wipeAllData() {
-  const cols = ['programs', 'vials', 'logs', 'labs', 'settings'];
+  const cols = COLLECTIONS;
   for (const col of cols) for (const id of Object.keys(store.data[col] || {})) await store.del(col, id);
   try { localStorage.removeItem(LS_KEY); localStorage.removeItem('pt-graph'); } catch {}
   detailId = null; showView('today'); toast('All data removed');
@@ -2181,7 +2181,7 @@ function dataFileBlock() {
     <div class="row" style="margin-top:6px;gap:8px">
       <button type="button" class="btn sm" data-action="file-choose">Choose file…</button>
       <button type="button" class="btn sm" data-action="file-create">Create file…</button>
-      ${store.mode === 'file' ? `<button type="button" class="btn sm danger" data-action="file-disconnect">Disconnect</button>` : ''}
+      ${store.mode === 'file' ? `<button type="button" class="btn sm danger" data-action="file-disconnect">Disconnect</button>` : pendingFileHandle ? `<button type="button" class="btn sm danger" data-action="file-disconnect">Forget file</button>` : ''}
     </div>
     <div class="help">Keeps your data in a JSON file you control (e.g. in a synced folder) instead of only this browser.</div>
   </div>`;
@@ -2205,6 +2205,8 @@ async function createFile() {
 }
 async function disconnectFile() {
   clearTimeout(fileWriteTimer);
+  await flushFileWrite();
+  pendingFileHandle = null;
   store.fileHandle = null; store.mode = 'local';
   await idbClearHandle();
   setBadge('local');
@@ -2283,7 +2285,7 @@ function importData() {
   $('#importGo').addEventListener('click', async () => {
     let j; try { j = JSON.parse($('#importText').value); } catch { toast('That is not valid JSON'); return; }
     closeModal(); let count = 0;
-    for (const col of ['programs','vials','logs','settings','labs']) for (const [id, obj] of Object.entries(j[col] || {})) { await store.put(col, id, obj); count++; }
+    for (const col of COLLECTIONS) for (const [id, obj] of Object.entries(j[col] || {})) { await store.put(col, id, obj); count++; }
     toast(`Imported ${count} records`);
   });
 }
