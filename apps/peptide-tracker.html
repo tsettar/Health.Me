@@ -552,6 +552,28 @@ const store = {
     if (this.db) { try { await this.db.collection(col).doc(id).set(obj); } catch (e) { toast('Save failed: ' + (e.message || e.code)); throw e; } }
     else { this.data[col][id] = obj; this.saveLocal(); render(); if (this.mode === 'file') scheduleFileWrite(); }
   },
+  // Writes many records to one collection with a single render at the end, instead of one
+  // per record — importing hundreds of rows one at a time (via put) freezes the tab because
+  // every write triggers a full app re-render (charts included).
+  async putMany(col, recordsById) {
+    const ids = Object.keys(recordsById);
+    if (!ids.length) return 0;
+    if (this.db) {
+      this.bulkImporting = true;
+      try {
+        for (const id of ids) {
+          const obj = { ...recordsById[id], id };
+          try { await this.db.collection(col).doc(id).set(obj); } catch (e) { toast('Save failed: ' + (e.message || e.code)); throw e; }
+        }
+      } finally { this.bulkImporting = false; }
+    } else {
+      for (const id of ids) this.data[col][id] = { ...recordsById[id], id };
+      this.saveLocal();
+      if (this.mode === 'file') scheduleFileWrite();
+    }
+    render();
+    return ids.length;
+  },
   async del(col, id) {
     if (this.db) { try { await this.db.collection(col).doc(id).delete(); } catch (e) { toast('Delete failed: ' + (e.message || e.code)); throw e; } }
     else { delete this.data[col][id]; this.saveLocal(); render(); if (this.mode === 'file') scheduleFileWrite(); }
@@ -563,7 +585,7 @@ const store = {
       this.db = db; this.mode = 'cloud';
       setBadge('cloud');
       let pending = 5;
-      const done = () => { if (--pending <= 0 && !this.ready) { this.ready = true; render(); } else if (this.ready) render(); };
+      const done = () => { if (--pending <= 0 && !this.ready) { this.ready = true; render(); } else if (this.ready && !this.bulkImporting) render(); };
       for (const col of COLLECTIONS) {
         db.collection(col).onSnapshot(snap => {
           const o = {}; snap.docs.forEach(d => { if (d.exists) o[d.id] = d.data(); });
@@ -2301,7 +2323,7 @@ function importData() {
   $('#importGo').addEventListener('click', async () => {
     let j; try { j = JSON.parse($('#importText').value); } catch { toast('That is not valid JSON'); return; }
     closeModal(); let count = 0;
-    for (const col of COLLECTIONS) for (const [id, obj] of Object.entries(j[col] || {})) { await store.put(col, id, obj); count++; }
+    for (const col of COLLECTIONS) count += await store.putMany(col, j[col] || {});
     toast(`Imported ${count} records`);
   });
 }
@@ -2317,8 +2339,8 @@ function importLabsData() {
     const entries = Object.entries(src).filter(([, obj]) => obj && typeof obj === 'object' && obj.marker && obj.value != null && obj.at);
     if (!entries.length) { toast('No lab results found in that file'); return; }
     closeModal();
-    for (const [id, obj] of entries) await store.put('labs', id, obj);
-    toast(`Imported ${entries.length} lab result${entries.length === 1 ? '' : 's'}`);
+    const count = await store.putMany('labs', Object.fromEntries(entries));
+    toast(`Imported ${count} lab result${count === 1 ? '' : 's'}`);
   });
 }
 
