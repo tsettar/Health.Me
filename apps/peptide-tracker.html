@@ -9,7 +9,7 @@
     --ink:#16201D; --muted:#5C6966; --faint:#8C9895;
     --accent:#3D4FC4; --accent-ink:#FFFFFF; --accent-soft:#E4E7FA; --accent-line:#B7BEEF;
     --good:#1F7A4D; --good-soft:#DDF1E6; --warn:#9A6400; --warn-soft:#FFF3CF; --today-soft:#FFF8E1; --bad:#BE3B3B; --bad-soft:#F9E0E0;
-    --chart-line:#0C7489; --chart-band:#DFF1F4;
+    --chart-line:#3D4FC4;
     --shadow:0 1px 2px rgba(22,32,29,.06), 0 8px 24px rgba(22,32,29,.06);
     --font-display:'Manrope', 'Segoe UI', system-ui, sans-serif;
     --font-body:'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
@@ -23,7 +23,7 @@
       --ink:#E6ECE9; --muted:#A2AEAA; --faint:#6F7B78;
       --accent:#8E9CFF; --accent-ink:#0F1513; --accent-soft:#252B4D; --accent-line:#3F4A8F;
       --good:#6CCB95; --good-soft:#173325; --warn:#F0B35A; --warn-soft:#3A2F14; --today-soft:#2E2812; --bad:#F08080; --bad-soft:#3D1A1A;
-      --chart-line:#5CC8D9; --chart-band:#133238;
+      --chart-line:#6F7FE8;
       --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
       color-scheme: dark;
     }
@@ -33,7 +33,7 @@
     --ink:#E6ECE9; --muted:#A2AEAA; --faint:#6F7B78;
     --accent:#8E9CFF; --accent-ink:#0F1513; --accent-soft:#252B4D; --accent-line:#3F4A8F;
     --good:#6CCB95; --good-soft:#173325; --warn:#F0B35A; --warn-soft:#3A2F14; --today-soft:#2E2812; --bad:#F08080; --bad-soft:#3D1A1A;
-    --chart-line:#5CC8D9; --chart-band:#133238;
+    --chart-line:#6F7FE8;
     --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
     color-scheme: dark;
   }
@@ -193,6 +193,15 @@
   .stack { display:grid; gap:10px; }
   .chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; align-items:start; }
   @media (max-width:900px) { .chart-grid { grid-template-columns:1fr; } }
+  .lab-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .lab-head h3 { font-size:15px; font-weight:700; }
+  .lab-head h3 small { color:var(--muted); font-weight:500; font-size:12px; margin-left:6px; }
+  .lab-hero { text-align:right; flex:none; }
+  .lab-hero .v { font-family:var(--font-body); font-weight:600; font-size:30px; line-height:1; letter-spacing:-.01em; }
+  .lab-hero .v small { font-size:13px; color:var(--muted); font-weight:500; margin-left:3px; }
+  .lab-meta { display:flex; gap:8px; align-items:center; justify-content:flex-end; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:4px; }
+  .lab-card .chart { margin-top:8px; }
+  @media (max-width:640px) { .lab-head { flex-direction:column; } .lab-hero { text-align:left; } .lab-meta { justify-content:flex-start; } }
   .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .spacer { flex:1; }
   .muted { color:var(--muted); }
@@ -428,7 +437,7 @@ function yearBoundaries(from, to) {
   return out;
 }
 function yearMarks(from, to, x, T, H, B) {
-  return yearBoundaries(from, to).map(yb => `<line x1="${x(yb.t)}" x2="${x(yb.t)}" y1="${T}" y2="${H - B}" stroke="var(--border)" stroke-dasharray="3 3"/><text x="${x(yb.t) + 3}" y="${T + 9}" font-size="9" fill="var(--faint)" font-family="var(--font-mono)">${yb.year}</text>`).join('');
+  return yearBoundaries(from, to).map(yb => `<line x1="${x(yb.t)}" x2="${x(yb.t)}" y1="${T - 3}" y2="${H - B}" stroke="var(--divider)"/><text x="${x(yb.t) + 4}" y="${T - 7}" font-size="9" fill="var(--faint)" font-family="var(--font-body)">${yb.year}</text>`).join('');
 }
 function fmtTime(iso) { return new Intl.DateTimeFormat('en-US', { hour:'numeric', minute:'2-digit' }).format(new Date(iso)); }
 function n(v, d=2) { if (!Number.isFinite(v)) return '—'; return Number(v.toFixed(d)).toString(); }
@@ -966,29 +975,36 @@ function labForm(preset) {
     closeModal(); await store.put('labs', uid(), obj); toast('Lab result saved');
   });
 }
+// Out of range against the record's own bounds; imported rows with a one-sided range carry no flag.
+function labOut(e) { return (e.refHigh != null && e.value > e.refHigh) || (e.refLow != null && e.value < e.refLow) || e.flag === 'High' || e.flag === 'Low'; }
+function labFlag(e) { if (e.flag) return e.flag; if (!labOut(e)) return (e.refLow != null || e.refHigh != null) ? 'Normal' : null; return e.refHigh != null && e.value > e.refHigh ? 'High' : 'Low'; }
+function refRangeText(r) { if (!r) return ''; if (r.refLow != null && r.refHigh != null) return `${n(r.refLow, 1)}–${n(r.refHigh, 1)}`; if (r.refHigh != null) return `≤ ${n(r.refHigh, 1)}`; if (r.refLow != null) return `≥ ${n(r.refLow, 1)}`; return ''; }
 function labsChart(key, entries, band) {
   const id = 'lab-' + key.replace(/[^\w-]/g, '_');
-  const W = 760, H = 170, L = 46, R = 14, T = 16, B = 28;
-  const vals = entries.map(e => e.value);
-  if (band) { vals.push(band.refLow, band.refHigh); }
+  const W = 760, H = 190, L = 46, R = 16, T = 22, B = 12;
+  const unit = entries[0].unit || '';
+  const pts = entries.map(e => ({ t: new Date(e.at + 'T12:00:00').getTime(), v: e.value, note: e.note, flag: labFlag(e), bad: labOut(e), ref: refRangeText(e), source: e.source }));
+  const vals = pts.map(q => q.v);
+  if (band) { if (band.refLow != null) vals.push(band.refLow); if (band.refHigh != null) vals.push(band.refHigh); }
   const lo = Math.min(...vals), hi = Math.max(...vals);
-  const pad = Math.max((hi - lo) * 0.25, hi * 0.1 || 1); const yMin = Math.max(0, lo - pad), yMax = hi + pad;
-  const t0 = new Date(entries[0].at + 'T12:00:00').getTime(), t1 = new Date(entries[entries.length - 1].at + 'T12:00:00').getTime();
-  const span = Math.max(t1 - t0, 14 * 86400e3); const from = t0 - span * 0.05, to = t0 + span * 1.05;
+  const pad = (hi - lo) * 0.12 || Math.abs(hi) * 0.1 || 1; const yMin = Math.max(0, lo - pad), yMax = hi + pad;
+  const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+  const span = Math.max(t1 - t0, 30 * 86400e3); const from = t0 - span * 0.03, to = t1 + span * 0.03;
   const x = t => L + (t - from) / (to - from) * (W - L - R);
   const y = v => T + (1 - (v - yMin) / (yMax - yMin)) * (H - T - B);
-  const pts = entries.map(e => ({ t: new Date(e.at + 'T12:00:00').getTime(), v: e.value, note: e.note, flag: e.flag }));
+  const step = niceStep(yMax - yMin, 3);
+  let grid = ''; for (let v = Math.ceil(yMin / step) * step; v <= yMax; v += step) grid += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--divider)"/><text x="${L - 8}" y="${y(v) + 3}" font-size="10" text-anchor="end" fill="var(--muted)" font-family="var(--font-body)" style="font-variant-numeric:tabular-nums">${n(v, step < 1 ? 1 : 0)}</text>`;
+  const bandRect = band ? `<rect x="${L}" y="${y(band.refHigh ?? yMax)}" width="${W - L - R}" height="${Math.max(0, y(band.refLow ?? yMin) - y(band.refHigh ?? yMax))}" fill="var(--surface-2)" opacity=".7"/>` : '';
   const path = pts.map((q, i) => `${i ? 'L' : 'M'}${x(q.t).toFixed(1)},${y(q.v).toFixed(1)}`).join(' ');
-  const step = (yMax - yMin) / 3; const nice = Math.pow(10, Math.floor(Math.log10(step))) * (step / Math.pow(10, Math.floor(Math.log10(step))) < 2 ? 1 : step / Math.pow(10, Math.floor(Math.log10(step))) < 5 ? 2 : 5);
-  let grid = ''; for (let v = Math.ceil(yMin / nice) * nice; v <= yMax; v += nice) grid += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--divider)"/><text x="${L - 6}" y="${y(v) + 3}" font-size="9" text-anchor="end" fill="var(--muted)" font-family="var(--font-mono)">${n(v, 1)}</text>`;
-  const bandRect = band ? `<rect x="${L}" y="${y(band.refHigh)}" width="${W - L - R}" height="${Math.max(0, y(band.refLow) - y(band.refHigh))}" fill="var(--chart-band)"/>` : '';
-  const dots = pts.map(q => { const bad = q.flag === 'High' || q.flag === 'Low'; return `<circle cx="${x(q.t)}" cy="${y(q.v)}" r="6" fill="var(--surface)"/><circle cx="${x(q.t)}" cy="${y(q.v)}" r="4" fill="${bad ? 'var(--bad)' : 'var(--chart-line)'}"/>`; }).join('');
   const last = pts[pts.length - 1];
-  chartData[id] = { pts, L, R, W, x0: from, x1: to, fmt: v => `${n(v, 1)} ${entries[0].unit || ''}`, y, x, snap: true };
+  const dots = pts.map(q => {
+    const c = q.bad ? 'var(--bad)' : 'var(--chart-line)'; const isLast = q === last;
+    return `${isLast ? `<circle cx="${x(q.t)}" cy="${y(q.v)}" r="9" fill="${c}" opacity=".18"/>` : ''}<circle cx="${x(q.t)}" cy="${y(q.v)}" r="${isLast ? 5.5 : 4}" fill="${c}" stroke="var(--surface)" stroke-width="2"/>`;
+  }).join('');
+  chartData[id] = { pts, L, R, W, x0: from, x1: to, fmt: v => `${n(v, 1)} ${unit}`, extra: q => `${q.flag ? ' · ' + q.flag : ''}${q.ref ? ' · ref ' + q.ref : ''}${q.source ? ' · ' + q.source : ''}`, y, x, snap: true };
   return `<div class="chart" data-chart="${id}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(entries[0].name)} over time">${bandRect}${grid}${yearMarks(from, to, x, T, H, B)}
     <path d="${path}" fill="none" stroke="var(--chart-line)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}
-    <text x="${x(last.t)}" y="${y(last.v) - 10}" font-size="10" text-anchor="middle" fill="var(--ink)" font-family="var(--font-mono)">${n(last.v, 1)}</text>
-    <line class="xh" x1="0" x2="0" y1="${T}" y2="${y(yMin)}" stroke="var(--ink)" opacity="0"/>
+    <line class="xh" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--ink)" opacity="0"/>
     <circle class="xd" cx="0" cy="0" r="5" fill="var(--chart-line)" stroke="var(--surface)" stroke-width="2" opacity="0"/>
     <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" class="hit"/>
   </svg><div class="tip" hidden></div></div>`;
@@ -1014,9 +1030,14 @@ function labsSection(opts = {}) {
     const es = groups[k]; const last = es[es.length - 1]; const prev = es.length > 1 ? es[es.length - 2] : null;
     const delta = prev ? last.value - prev.value : null;
     const cat = LAB_BY_ID(k);
-    const band = [...es].reverse().find(e => e.refLow != null && e.refHigh != null);
-    h += `<div class="card"${opts.only ? '' : ` id="lab-card-${k.replace(/[^\w-]/g, '_')}"`}><div class="row" style="margin-bottom:6px"><h3 style="font-size:15px">${esc(last.name)}</h3><span class="muted small">${esc(last.unit)}</span><span class="spacer"></span>${flagChip(last.flag)}<span class="num" style="font-size:20px;font-weight:600">${n(last.value, 1)}</span><span class="small muted">${fmtDate(P(last.at))}${delta != null ? ` · ${delta >= 0 ? '+' : ''}${n(delta, 1)} vs prior` : ''}${last.refText ? ` · ref ${esc(last.refText)}` : ''}</span></div>
-      ${es.length > 1 ? labsChart(k, es, band ? { refLow: band.refLow, refHigh: band.refHigh } : null) : `<div class="small muted">One result so far. A second one draws the line.</div>`}
+    const band = [...es].reverse().find(e => e.refLow != null || e.refHigh != null);
+    const refText = refRangeText(band);
+    h += `<div class="card lab-card"${opts.only ? '' : ` id="lab-card-${k.replace(/[^\w-]/g, '_')}"`}>
+      <div class="lab-head">
+        <div><h3>${esc(last.name)}<small>${esc(last.unit)}</small></h3><div class="small faint">${es.length} result${es.length === 1 ? '' : 's'}${es.length > 1 ? ` · ${fmtDate(P(es[0].at), true)} → ${fmtDate(P(last.at), true)}` : ''}</div></div>
+        <div class="lab-hero"><div class="v">${n(last.value, 1)}<small>${esc(last.unit)}</small></div><div class="lab-meta">${flagChip(labFlag(last))}<span>${fmtDate(P(last.at), true)}</span>${delta != null ? `<span>${delta >= 0 ? '+' : ''}${n(delta, 1)} vs prior</span>` : ''}${refText ? `<span>ref ${esc(refText)}</span>` : ''}</div></div>
+      </div>
+      ${es.length > 1 ? labsChart(k, es, band ? { refLow: band.refLow ?? null, refHigh: band.refHigh ?? null } : null) : `<div class="small muted" style="margin-top:8px">One result so far. A second one draws the line.</div>`}
       ${(MARKER_GENES[k] || []).map(gene => {
         const gf = GENOME.findings.filter(f => f.gene === gene).sort((a, b) => (b.magnitude || 0) - (a.magnitude || 0))[0];
         if (!gf) return '';
@@ -1162,7 +1183,7 @@ document.addEventListener('pointermove', e => {
   let best = d.pts[0]; for (const q of d.pts) if (Math.abs(q.t - t) < Math.abs(best.t - t)) best = q;
   const xh = svg.querySelector('.xh'), xd = svg.querySelector('.xd'); const px = d.x(best.t), py = d.y(best.v);
   xh.setAttribute('x1', px); xh.setAttribute('x2', px); xh.setAttribute('opacity', '.35'); xd.setAttribute('cx', px); xd.setAttribute('cy', py); xd.setAttribute('opacity', '1');
-  const tip = c.querySelector('.tip'); tip.hidden = false; tip.textContent = ''; const b = document.createElement('b'); b.textContent = d.fmt(best.v); tip.appendChild(b); tip.appendChild(document.createTextNode(' · ' + new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', ...(d.snap ? {} : { hour: 'numeric' }) }).format(new Date(best.t)) + (best.note ? ' · ' + best.note : '')));
+  const tip = c.querySelector('.tip'); tip.hidden = false; tip.textContent = ''; const b = document.createElement('b'); b.textContent = d.fmt(best.v); tip.appendChild(b); tip.appendChild(document.createTextNode(' · ' + new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', ...(d.snap ? {} : { hour: 'numeric' }) }).format(new Date(best.t)) + (d.extra ? d.extra(best) : '') + (best.note ? ' · ' + best.note : '')));
   const lx = px / d.W * r.width; tip.style.left = Math.min(Math.max(lx, 60), r.width - 60) + 'px';
 });
 document.addEventListener('pointerleave', e => { const c = e.target.closest && e.target.closest('.chart'); if (!c) return; c.querySelectorAll('.xh,.xd').forEach(el => el.setAttribute('opacity', '0')); const tip = c.querySelector('.tip'); if (tip) tip.hidden = true; }, true);
@@ -1205,7 +1226,7 @@ function seriesPoints(key, from, to) {
 }
 function niceStep(range, n) { const raw = range / n; const p = Math.pow(10, Math.floor(Math.log10(raw || 1))); const r = raw / p; return p * (r < 1.5 ? 1 : r < 3.5 ? 2 : r < 7.5 ? 5 : 10); }
 function drawSeriesChart(id, series, from, to, opts = {}) {
-  const W = 900, H = opts.height || 180, L = 52, R = 14, T = 14, B = 26;
+  const W = 900, H = opts.height || 180, L = 52, R = 14, T = 18, B = 26;
   const x = t => L + (t - from) / (to - from) * (W - L - R);
   const norm = opts.normalize;
   const scales = series.map(sr => { const vs = sr.pts.map(q => q.v); if (!vs.length) return { lo: 0, hi: 1 }; let lo = Math.min(...vs), hi = Math.max(...vs); if (norm) return { lo, hi: hi === lo ? lo + 1 : hi }; return { lo: Math.min(0, lo), hi: hi === 0 ? 1 : hi }; });
