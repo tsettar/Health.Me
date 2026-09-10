@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>Peptide Protocol Tracker</title>
+<title>Stack Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -365,10 +365,10 @@
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20l4-4"/><path d="M7 17l9-9"/><path d="M14 6l4 4"/><path d="M16 4l4 4"/><path d="M10 11l2 2"/><path d="M12 9l2 2"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L21 7.5 L12 12 L3 7.5 Z"/><path d="M3 11.5 L12 16 L21 11.5"/><path d="M3 15.5 L12 20 L21 15.5"/></svg>
       </div>
       <div>
-        <h1>Peptide Protocol Tracker</h1>
+        <h1>Stack Tracker</h1>
         <div class="sub" id="todayLabel"></div>
       </div>
     </div>
@@ -2410,7 +2410,7 @@ function confirmBox(msg, onYes) {
 
 async function exportData() {
   const payload = JSON.stringify({ exportedAt: new Date().toISOString(), ...store.data }, null, 2);
-  const filename = `peptide-tracker-${ISO(new Date())}.json`;
+  const filename = `stack-tracker-${ISO(new Date())}.json`;
   if (store.downloads) { try { await store.downloads.save({ filename, data: payload }); toast('Exported'); return; } catch (e) { if (e && e.code === 'cancelled') return; } }
   try { await navigator.clipboard.writeText(payload); toast('Copied JSON to clipboard'); } catch { toast('Export unavailable here'); }
 }

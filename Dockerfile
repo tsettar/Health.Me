@@ -21,6 +21,7 @@ COPY data ./data
 # repo (never delete Tim's files) but must never be copied into the image.
 COPY index.html ./static/index.html
 COPY apps/peptide-tracker.html ./static/apps/peptide-tracker.html
+COPY assets ./static/assets
 
 EXPOSE 8080
 

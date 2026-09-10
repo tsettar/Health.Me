@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>health.me</title>
+<link rel="icon" type="image/png" href="assets/logo-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -37,10 +38,11 @@
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 var(--font-body); }
   .wrap { max-width:960px; margin:0 auto; padding:56px 24px 80px; }
-  .brand { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
-  .brand .dot { width:10px; height:10px; border-radius:50%; background:var(--accent); }
+  .brand { display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+  .brand img { width:34px; height:34px; object-fit:contain; }
   .brand span { font-family:var(--font-display); font-weight:800; font-size:14px; letter-spacing:.02em; color:var(--muted); text-transform:uppercase; }
   h1 { font-family:var(--font-display); font-weight:800; font-size:34px; margin:0 0 8px; }
+  .tagline { color:var(--muted); font-size:12.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; margin-bottom:18px; }
   .sub { color:var(--muted); font-size:15px; margin-bottom:40px; max-width:52ch; }
   .sub a { color:var(--accent); }
   .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:16px; }
@@ -67,14 +69,17 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="brand"><span class="dot"></span><span>health.me</span></div>
+    <div class="brand"><img src="assets/logo-icon.png" alt=""><span>health.me</span></div>
     <h1>Health Dashboard</h1>
+    <p class="tagline">Peptides &middot; Injectables &middot; Blood work &middot; DNA testing</p>
     <p class="sub">One place to reach every personal health tracker &mdash; protocols, labs, and genome.</p>
 
     <div class="grid">
       <a class="card" href="apps/peptide-tracker.html">
-        <div class="icon">&#128137;</div>
-        <h2>health.me</h2>
+        <div class="icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L21 7.5 L12 12 L3 7.5 Z"/><path d="M3 11.5 L12 16 L21 11.5"/><path d="M3 15.5 L12 20 L21 15.5"/></svg>
+        </div>
+        <h2>Stack Tracker</h2>
         <p>Programs, labs and genome in one place &mdash; protocols, vials, dose schedules, injection logs, a full lab marker catalog with reference ranges, and a genome screen with 213 findings cross-linked to the markers that watch them.</p>
         <span class="tag">Open &rarr;</span>
       </a>
