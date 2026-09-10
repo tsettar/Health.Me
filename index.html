@@ -77,8 +77,8 @@
 
   .wrap { padding:32px 24px 80px; position:relative; z-index:1; }
 
-  /* dashboard title, in the topbar next to the brand */
-  .dash-title { font-family:var(--font-display); font-weight:800; font-size:20px; margin:0; letter-spacing:-.01em; color:#12808F; }
+  /* dashboard title, centered in the topbar */
+  .dash-title { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-family:var(--font-display); font-weight:800; font-size:28px; margin:0; letter-spacing:-.01em; color:#12808F; white-space:nowrap; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .dash-title { color:#4FC3CE; } }
   :root[data-theme="dark"] .dash-title { color:#4FC3CE; }
   .grid { display:flex; flex-wrap:wrap; justify-content:center; gap:16px; max-width:1040px; margin:0 auto; }
