@@ -56,10 +56,6 @@
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .hm-brand .a { color:#4FC3CE; } :root:not([data-theme="light"]) .hm-brand .b { color:#8E9CFF; } }
   :root[data-theme="dark"] .hm-brand .a { color:#4FC3CE; }
   :root[data-theme="dark"] .hm-brand .b { color:#8E9CFF; }
-  .applinks { display:flex; align-items:center; gap:2px; overflow-x:auto; }
-  .applinks a { padding:7px 12px; border-radius:999px; font-size:13px; font-weight:600; color:var(--muted); text-decoration:none; white-space:nowrap; }
-  .applinks a:hover { background:var(--surface-2); color:var(--ink); }
-  .applinks a.active { background:var(--accent-soft); color:var(--accent); }
   .topbar-right { margin-left:auto; display:flex; align-items:center; gap:8px; }
   .account { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted); }
   .account .who { display:flex; align-items:center; gap:6px; }
@@ -79,14 +75,12 @@
   .hero::after { width:360px; height:360px; background:var(--teal-soft); top:-220px; right:-100px; }
   :root[data-theme="dark"] .hero::before, :root[data-theme="dark"] .hero::after { opacity:.5; }
 
-  .wrap { padding:24px 24px 80px; position:relative; z-index:1; }
+  .wrap { padding:32px 24px 80px; position:relative; z-index:1; }
 
-  /* dashboard title — icon + heading in one row, like every app's page head */
-  .pagehead { display:flex; align-items:center; justify-content:center; text-align:center; margin-bottom:28px; }
-  .brand { display:flex; align-items:center; gap:16px; }
-  .brand-mark { height:48px; width:auto; display:block; }
-  h1 { font-family:var(--font-display); font-weight:800; font-size:30px; margin:0; letter-spacing:-.01em; }
-  .sub { color:var(--muted); font-size:15px; margin-top:2px; }
+  /* dashboard title, in the topbar next to the brand */
+  .dash-title { font-family:var(--font-display); font-weight:800; font-size:20px; margin:0; letter-spacing:-.01em; color:#12808F; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .dash-title { color:#4FC3CE; } }
+  :root[data-theme="dark"] .dash-title { color:#4FC3CE; }
   .grid { display:flex; flex-wrap:wrap; justify-content:center; gap:16px; max-width:1040px; margin:0 auto; }
   a.card {
     flex:1 1 270px; max-width:320px;
@@ -122,26 +116,13 @@
         <span class="hm-tag">Wellness by Oxterlabs</span>
       </span>
     </a>
-    <nav class="applinks" aria-label="Apps">
-      <a href="index.html" class="active">Dashboard</a>
-      <a href="apps/peptide-tracker.html">Stack Tracker</a>
-      <a href="apps/bloodwork.html">Bloodwork</a>
-      <a href="apps/genome.html">Genome</a>
-    </nav>
+    <h1 class="dash-title">Health Dashboard</h1>
     <div class="topbar-right">
       <div class="account" id="account" hidden></div>
     </div>
   </header>
   <div class="hero">
     <div class="wrap">
-      <div class="pagehead">
-        <div class="brand">
-          <div>
-            <h1>Health Dashboard</h1>
-          </div>
-        </div>
-      </div>
-
       <div class="grid">
         <a class="card" href="apps/peptide-tracker.html" style="--card-accent:var(--accent); --icon-bg:var(--accent-soft); --icon-fg:var(--accent)">
           <div class="card-head">
