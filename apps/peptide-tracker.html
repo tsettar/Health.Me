@@ -73,6 +73,13 @@
   .hm-brand { display:flex; align-items:center; gap:8px; text-decoration:none; color:inherit; flex:none; }
   .hm-brand img { height:26px; width:auto; display:block; }
   .hm-brand span { font-family:var(--font-display); font-weight:800; font-size:15px; letter-spacing:-.01em; }
+  .hm-brand .a { color:#12808F; }
+  .hm-brand .b { color:#1B3A63; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .hm-brand .a { color:#4FC3CE; } :root:not([data-theme="light"]) .hm-brand .b { color:#8E9CFF; } }
+  :root[data-theme="dark"] .hm-brand .a { color:#4FC3CE; }
+  :root[data-theme="dark"] .hm-brand .b { color:#8E9CFF; }
+  .hm-name-wrap { display:flex; flex-direction:column; line-height:1.15; }
+  .hm-brand .hm-tag { font-size:10px; font-weight:600; color:var(--muted); letter-spacing:.02em; margin-top:1px; }
   .applinks { display:flex; align-items:center; gap:2px; overflow-x:auto; }
   .applinks a { padding:7px 12px; border-radius:999px; font-size:13px; font-weight:600; color:var(--muted); text-decoration:none; white-space:nowrap; }
   .applinks a:hover { background:var(--surface-2); color:var(--ink); }
@@ -372,7 +379,13 @@
 </style>
 
 <header class="topbar">
-  <a class="hm-brand" href="../index.html"><img src="../assets/logo-icon.png" alt=""><span>health.me</span></a>
+  <a class="hm-brand" href="../index.html">
+    <img src="../assets/logo-icon.png" alt="">
+    <span class="hm-name-wrap">
+      <span><span class="a">HEALTH</span><span class="b">.me</span></span>
+      <span class="hm-tag">Wellness by Oxterlabs</span>
+    </span>
+  </a>
   <nav class="applinks" aria-label="Apps">
     <a href="../index.html">Dashboard</a>
     <a href="peptide-tracker.html" class="active">Stack Tracker</a>
