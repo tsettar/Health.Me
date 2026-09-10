@@ -44,8 +44,9 @@
   }
   .topbar img { height:64px; width:auto; display:block; }
   .wrap { padding:40px 24px 80px; }
+  .intro { text-align:center; max-width:640px; margin:0 auto 40px; }
   h1 { font-family:var(--font-display); font-weight:800; font-size:34px; margin:0 0 8px; }
-  .sub { color:var(--muted); font-size:15px; margin-bottom:40px; max-width:52ch; }
+  .sub { color:var(--muted); font-size:15px; }
   .sub a { color:var(--accent); }
   .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:16px; }
   a.card {
@@ -75,8 +76,10 @@
     <img src="assets/logo-header.png" alt="health.me">
   </header>
   <div class="wrap">
-    <h1>Health Dashboard</h1>
-    <p class="sub">One place to reach every personal health tracker &mdash; protocols, labs, and genome.</p>
+    <div class="intro">
+      <h1>Health Dashboard</h1>
+      <p class="sub">One place to reach every personal health tracker &mdash; protocols, labs, and genome.</p>
+    </div>
 
     <div class="grid">
       <a class="card" href="apps/peptide-tracker.html">
