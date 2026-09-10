@@ -3,8 +3,11 @@
 .github
 PLAN.md
 README.md
+DEPLOY.md
 docker-compose.yml
 Dockerfile
-tailscale-serve.json
 .env
 .env.*
+server-data
+__pycache__
+*.pyc

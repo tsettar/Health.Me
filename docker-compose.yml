@@ -1,33 +1,46 @@
 services:
-  # Tailscale sidecar: the container joins your tailnet as its own machine
-  # ("health-me"), and Tailscale Serve terminates HTTPS with an
-  # auto-provisioned ts.net certificate. The app is reachable ONLY over the
-  # tailnet:
-  #   https://health-me.<your-tailnet>.ts.net
-  # First run needs TS_AUTHKEY in .env (see .env.example); after that the
-  # node identity persists in the tailscale-state volume and the key may
-  # expire.
-  tailscale:
-    image: tailscale/tailscale:latest
-    hostname: health-me
+  # Cloudflare Tunnel: outbound-only connection to Cloudflare's edge, where
+  # Cloudflare Access gates every request by email login before it ever
+  # reaches this docker network. See DEPLOY.md for the one-time dashboard
+  # setup (Tunnel + Public Hostname routing to http://health-me:8080, an
+  # Access Application + Policy).
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel run
     environment:
-      TS_AUTHKEY: ${TS_AUTHKEY:-}
-      TS_STATE_DIR: /var/lib/tailscale
-      TS_USERSPACE: "true"
-      TS_SERVE_CONFIG: /config/serve.json
-    volumes:
-      - tailscale-state:/var/lib/tailscale
-      - ./tailscale-serve.json:/config/serve.json:ro
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
     restart: unless-stopped
+    depends_on:
+      health-me:
+        condition: service_healthy
 
   health-me:
     build: .
-    # Shares the sidecar's network namespace: nginx binds 127.0.0.1:8080
-    # (see nginx.conf), so the ONLY way in is through the Serve proxy above.
-    network_mode: service:tailscale
-    depends_on:
-      - tailscale
+    environment:
+      HEALTHME_DATA_DIR: /dbdata
+      # Local-dev-only auth bypass — every request is treated as this email,
+      # no Cloudflare needed at all. MUST be empty in production: leaving it
+      # set disables all real authentication. See app/auth.py.
+      DEV_USER: ${DEV_USER:-}
+      CF_TEAM_DOMAIN: ${CF_TEAM_DOMAIN:-}
+      CF_API_TOKEN: ${CF_API_TOKEN:-}
+      CF_ACCOUNT_ID: ${CF_ACCOUNT_ID:-}
+      CF_ACCESS_POLICY_ID: ${CF_ACCESS_POLICY_ID:-}
+    volumes:
+      - ./server-data:/dbdata
+    # Bound to loopback only, for local debugging (curl localhost:8080) —
+    # this must NEVER become a non-loopback or externally-reachable binding.
+    # Cloudflare Access verification checks JWT *claims*, not a cryptographic
+    # signature (see app/auth.py) — the actual security boundary is that
+    # Cloudflare's Tunnel (reaching this container over the docker network by
+    # service name, not this port) is the only path in. Any other ingress
+    # would let an unauthenticated request straight through.
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
     restart: unless-stopped
-
-volumes:
-  tailscale-state:
