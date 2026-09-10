@@ -36,9 +36,18 @@
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 var(--font-body); }
   .app { max-width:900px; margin:0 auto; padding:16px 24px 64px; }
-  .crumb { font-size:13px; color:var(--muted); display:flex; gap:6px; align-items:center; margin-bottom:14px; }
-  .crumb a { color:var(--muted); text-decoration:none; } .crumb a:hover { color:var(--accent); }
-  h1 { font-family:var(--font-display); font-size:24px; font-weight:800; margin:0 0 16px; }
+
+  /* site-wide nav bar — same markup/styling on every app page */
+  .topbar { display:flex; align-items:center; gap:20px; padding:12px 24px; background:var(--surface); border-bottom:1px solid var(--border); }
+  .hm-brand { display:flex; align-items:center; gap:8px; text-decoration:none; color:inherit; flex:none; }
+  .hm-brand img { height:26px; width:auto; display:block; }
+  .hm-brand span { font-family:var(--font-display); font-weight:800; font-size:15px; letter-spacing:-.01em; }
+  .applinks { display:flex; align-items:center; gap:2px; overflow-x:auto; }
+  .applinks a { padding:7px 12px; border-radius:999px; font-size:13px; font-weight:600; color:var(--muted); text-decoration:none; white-space:nowrap; }
+  .applinks a:hover { background:var(--surface-2); color:var(--ink); }
+  .applinks a.active { background:var(--accent-soft); color:var(--accent); }
+
+  h1 { font-family:var(--font-display); font-size:24px; font-weight:800; margin:16px 0 16px; }
   .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .muted { color:var(--muted); }
   .small { font-size:12px; }
@@ -72,8 +81,16 @@
   .toast.show { opacity:1; }
 </style>
 
+<header class="topbar">
+  <a class="hm-brand" href="../index.html"><img src="../assets/logo-icon.png" alt=""><span>health.me</span></a>
+  <nav class="applinks" aria-label="Apps">
+    <a href="../index.html">Dashboard</a>
+    <a href="peptide-tracker.html">Stack Tracker</a>
+    <a href="bloodwork.html">Bloodwork</a>
+    <a href="genome.html">Genome</a>
+  </nav>
+</header>
 <div class="app">
-  <div class="crumb"><a href="../index.html">health.me</a> <span>/</span> <span>Admin</span></div>
   <h1>Admin</h1>
   <div id="admin"><div class="empty">Loading…</div></div>
 </div>

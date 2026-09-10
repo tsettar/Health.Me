@@ -68,8 +68,18 @@
   @media (max-width:900px) { .layout { grid-template-columns:1fr; } .side { position:static; max-height:none; overflow:visible; } }
   @media (max-width:640px) { .app { padding:12px 12px 64px; } }
 
-  /* top bar */
-  .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 0 14px; }
+  /* site-wide nav bar — same markup/styling on every app page */
+  .topbar { display:flex; align-items:center; gap:20px; padding:12px 24px; background:var(--surface); border-bottom:1px solid var(--border); }
+  .hm-brand { display:flex; align-items:center; gap:8px; text-decoration:none; color:inherit; flex:none; }
+  .hm-brand img { height:26px; width:auto; display:block; }
+  .hm-brand span { font-family:var(--font-display); font-weight:800; font-size:15px; letter-spacing:-.01em; }
+  .applinks { display:flex; align-items:center; gap:2px; overflow-x:auto; }
+  .applinks a { padding:7px 12px; border-radius:999px; font-size:13px; font-weight:600; color:var(--muted); text-decoration:none; white-space:nowrap; }
+  .applinks a:hover { background:var(--surface-2); color:var(--ink); }
+  .applinks a.active { background:var(--accent-soft); color:var(--accent); }
+
+  /* per-page header (icon + title), sits below the site-wide nav bar */
+  .pagehead { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 0; }
   .brand { display:flex; align-items:center; gap:12px; }
   .brand-mark { width:36px; height:36px; border-radius:10px; background:var(--accent); display:grid; place-items:center; color:var(--accent-ink); }
   .brand h1 { font-size:18px; font-weight:800; letter-spacing:-.01em; }
@@ -361,8 +371,17 @@
   @media (prefers-reduced-motion: reduce) { .toast { transition:none; } }
 </style>
 
+<header class="topbar">
+  <a class="hm-brand" href="../index.html"><img src="../assets/logo-icon.png" alt=""><span>health.me</span></a>
+  <nav class="applinks" aria-label="Apps">
+    <a href="../index.html">Dashboard</a>
+    <a href="peptide-tracker.html" class="active">Stack Tracker</a>
+    <a href="bloodwork.html">Bloodwork</a>
+    <a href="genome.html">Genome</a>
+  </nav>
+</header>
 <div class="app">
-  <header class="topbar">
+  <div class="pagehead">
     <div class="brand">
       <div class="brand-mark" aria-hidden="true">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L21 7.5 L12 12 L3 7.5 Z"/><path d="M3 11.5 L12 16 L21 11.5"/><path d="M3 15.5 L12 20 L21 15.5"/></svg>
@@ -373,12 +392,10 @@
       </div>
     </div>
     <div class="topbar-right">
-      <a class="btn sm ghost" href="bloodwork.html">Bloodwork →</a>
-      <a class="btn sm ghost" href="genome.html">Genome →</a>
       <span class="storage" id="storageBadge"><i></i><span>Loading</span></span>
       <button class="btn sm ghost" data-action="settings" aria-label="Settings">⚙</button>
     </div>
-  </header>
+  </div>
 
   <nav class="jump" role="tablist">
     <div class="tabs" id="tabs"></div>
