@@ -38,11 +38,9 @@
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 var(--font-body); }
   .wrap { max-width:960px; margin:0 auto; padding:56px 24px 80px; }
-  .brand { display:flex; align-items:center; gap:10px; margin-bottom:18px; }
-  .brand img { width:34px; height:34px; object-fit:contain; }
-  .brand span { font-family:var(--font-display); font-weight:800; font-size:14px; letter-spacing:.02em; color:var(--muted); text-transform:uppercase; }
+  .brand { margin-bottom:24px; }
+  .brand img { width:260px; max-width:100%; height:auto; display:block; }
   h1 { font-family:var(--font-display); font-weight:800; font-size:34px; margin:0 0 8px; }
-  .tagline { color:var(--muted); font-size:12.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; margin-bottom:18px; }
   .sub { color:var(--muted); font-size:15px; margin-bottom:40px; max-width:52ch; }
   .sub a { color:var(--accent); }
   .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:16px; }
@@ -69,9 +67,8 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="brand"><img src="assets/logo-icon.png" alt=""><span>health.me</span></div>
+    <div class="brand"><img src="assets/logo-lockup.png" alt="health.me &mdash; Peptides, Injectables, Blood work, DNA testing"></div>
     <h1>Health Dashboard</h1>
-    <p class="tagline">Peptides &middot; Injectables &middot; Blood work &middot; DNA testing</p>
     <p class="sub">One place to reach every personal health tracker &mdash; protocols, labs, and genome.</p>
 
     <div class="grid">
