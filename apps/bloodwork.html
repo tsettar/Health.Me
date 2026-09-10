@@ -67,6 +67,7 @@
 
   /* per-page header (icon + title), sits below the site-wide nav bar */
   .pagehead { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 0; }
+  @media (max-width:640px) { .pagehead { flex-wrap:wrap; row-gap:8px; } .pagehead .brand { width:100%; } .pagehead .topbar-right { width:100%; justify-content:flex-end; } }
   .brand { display:flex; align-items:center; gap:12px; }
   .brand-mark { width:36px; height:36px; border-radius:10px; background:var(--accent); display:grid; place-items:center; color:var(--accent-ink); }
   .brand h1 { font-size:18px; font-weight:800; letter-spacing:-.01em; }
@@ -298,7 +299,7 @@ function setBadge(mode, name) {
   if (!badge) return;
   badge.onclick = null; badge.style.cursor = '';
   if (mode === 'cloud') { badge.className = 'storage cloud'; badge.querySelector('span').textContent = 'Synced'; }
-  else if (mode === 'server') { badge.className = 'storage server'; badge.querySelector('span').textContent = name ? `Synced · ${name}` : 'Synced'; }
+  else if (mode === 'server') { badge.className = 'storage server'; badge.querySelector('span').textContent = 'Synced'; }
   else if (mode === 'file') { badge.className = 'storage file'; badge.querySelector('span').textContent = `File: ${name || 'data file'}`; }
   else if (mode === 'reconnect') {
     badge.className = 'storage local'; badge.querySelector('span').textContent = `File: ${name || 'data file'} — click to reconnect`;
