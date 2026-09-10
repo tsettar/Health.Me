@@ -1,0 +1,186 @@
+<meta charset="utf-8">
+<title>Admin — health.me</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#F3F5F4; --surface:#FFFFFF; --surface-2:#E9EEEC; --border:#D3DBD8; --divider:#E3E9E7;
+    --ink:#16201D; --muted:#5C6966; --faint:#8C9895;
+    --accent:#3D4FC4; --accent-ink:#FFFFFF; --accent-soft:#E4E7FA; --accent-line:#B7BEEF;
+    --good:#1F7A4D; --good-soft:#DDF1E6; --bad:#BE3B3B; --bad-soft:#F9E0E0;
+    --shadow:0 1px 2px rgba(22,32,29,.06), 0 8px 24px rgba(22,32,29,.06);
+    --font-display:'Manrope','Segoe UI',system-ui,sans-serif;
+    --font-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+    --r-sm:6px; --r-md:10px; --r-lg:14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#0F1513; --surface:#171E1C; --surface-2:#1F2826; --border:#2C3735; --divider:#243030;
+      --ink:#E6ECE9; --muted:#A2AEAA; --faint:#6F7B78;
+      --accent:#8E9CFF; --accent-ink:#0F1513; --accent-soft:#252B4D; --accent-line:#3F4A8F;
+      --good:#6CCB95; --good-soft:#173325; --bad:#F08080; --bad-soft:#3D1A1A;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0F1513; --surface:#171E1C; --surface-2:#1F2826; --border:#2C3735; --divider:#243030;
+    --ink:#E6ECE9; --muted:#A2AEAA; --faint:#6F7B78;
+    --accent:#8E9CFF; --accent-ink:#0F1513; --accent-soft:#252B4D; --accent-line:#3F4A8F;
+    --good:#6CCB95; --good-soft:#173325; --bad:#F08080; --bad-soft:#3D1A1A;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 var(--font-body); }
+  .app { max-width:900px; margin:0 auto; padding:16px 24px 64px; }
+  .crumb { font-size:13px; color:var(--muted); display:flex; gap:6px; align-items:center; margin-bottom:14px; }
+  .crumb a { color:var(--muted); text-decoration:none; } .crumb a:hover { color:var(--accent); }
+  h1 { font-family:var(--font-display); font-size:24px; font-weight:800; margin:0 0 16px; }
+  .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .muted { color:var(--muted); }
+  .small { font-size:12px; }
+  .btn { appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:var(--r-md); padding:9px 14px; font-weight:600; cursor:pointer; min-height:40px; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+  .btn:hover { background:var(--surface-2); }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+  .btn.sm { padding:5px 10px; min-height:30px; font-size:13px; }
+  .btn.ghost { border-color:transparent; background:transparent; }
+  .btn.ghost:hover { background:var(--surface-2); }
+  .btn.danger { color:var(--bad); }
+  .chip { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:600; line-height:18px; }
+  .chip.accent { background:var(--accent-soft); color:var(--accent); }
+  .chip.good { background:var(--good-soft); color:var(--good); }
+  .chip.bad { background:var(--bad-soft); color:var(--bad); }
+  .chip.plain { background:var(--surface-2); color:var(--muted); }
+  .table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:var(--r-md); background:var(--surface); }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th, td { padding:9px 12px; text-align:left; border-bottom:1px solid var(--divider); vertical-align:middle; white-space:nowrap; }
+  th { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:600; background:var(--surface-2); }
+  tr:last-child td { border-bottom:0; }
+  .field { display:grid; gap:4px; }
+  .field label { font-size:12px; font-weight:600; color:var(--muted); }
+  .field input { width:100%; border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface); padding:9px 10px; min-height:40px; }
+  .modal-bg { position:fixed; inset:0; background:rgba(10,14,13,.5); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .modal-bg.open { display:flex; }
+  .modal { background:var(--surface); width:100%; max-width:480px; border-radius:16px; padding:18px 18px 24px; border:1px solid var(--border); }
+  .modal h2 { font-size:17px; font-weight:800; margin:0 0 12px; }
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; flex-wrap:wrap; }
+  .empty { text-align:center; padding:36px 16px; color:var(--muted); border:1px dashed var(--border); border-radius:var(--r-lg); }
+  .toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:10px 16px; border-radius:999px; font-weight:600; font-size:14px; box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:opacity .2s; z-index:60; }
+  .toast.show { opacity:1; }
+</style>
+
+<div class="app">
+  <div class="crumb"><a href="../index.html">health.me</a> <span>/</span> <span>Admin</span></div>
+  <h1>Admin</h1>
+  <div id="admin"><div class="empty">Loading…</div></div>
+</div>
+
+<div class="modal-bg" id="modalBg" role="dialog" aria-modal="true">
+  <div class="modal" id="modal"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r=document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1800); }
+function openModal(html) { $('#modal').innerHTML = html; $('#modalBg').classList.add('open'); const f = $('#modal input'); f && f.focus(); }
+function closeModal() { $('#modalBg').classList.remove('open'); $('#modal').innerHTML = ''; }
+let modalDownOnBackdrop = false;
+$('#modalBg').addEventListener('pointerdown', e => { modalDownOnBackdrop = e.target === e.currentTarget; });
+$('#modalBg').addEventListener('click', e => { if (e.target === e.currentTarget && modalDownOnBackdrop) closeModal(); modalDownOnBackdrop = false; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+let me = null;
+let adminUsers = null;
+
+async function adminAction(method, path, body) {
+  try {
+    const res = await fetch(path, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { toast(data.error || 'Action failed'); return false; }
+    return true;
+  } catch { toast('Action failed — check your connection'); return false; }
+}
+async function loadAdminUsers() {
+  try {
+    const res = await fetch('/api/admin/users');
+    if (res.ok) { adminUsers = await res.json(); renderAdmin(); }
+  } catch {}
+}
+function renderAdmin() {
+  const el = $('#admin');
+  if (!me) { el.innerHTML = '<div class="empty">Could not confirm your account. Open this page from the health.me hub while signed in.</div>'; return; }
+  if (!me.is_admin) { el.innerHTML = `<div class="empty">Not authorized. <a href="../index.html">Back to health.me</a></div>`; return; }
+  const rows = adminUsers === null
+    ? `<tr><td colspan="5" class="muted small">Loading…</td></tr>`
+    : !adminUsers.length
+      ? `<tr><td colspan="5" class="muted small">No users yet.</td></tr>`
+      : adminUsers.map(u => `<tr>
+          <td>${esc(u.email)}${u.email === me.email ? ' <span class="chip plain">you</span>' : ''}</td>
+          <td>${u.is_admin ? '<span class="chip accent">Admin</span>' : ''}</td>
+          <td>${u.is_disabled ? '<span class="chip bad">Disabled</span>' : '<span class="chip good">Active</span>'}</td>
+          <td class="muted small">${u.program_count || 0} program${u.program_count === 1 ? '' : 's'}</td>
+          <td class="row" style="gap:6px;justify-content:flex-end">${u.email === me.email ? '' : `
+              <button class="btn sm ghost" data-action="admin-toggle-admin" data-email="${esc(u.email)}" data-is-admin="${u.is_admin ? '0' : '1'}">${u.is_admin ? 'Remove admin' : 'Make admin'}</button>
+              ${u.is_disabled
+                ? `<button class="btn sm" data-action="admin-enable" data-email="${esc(u.email)}">Enable</button>`
+                : `<button class="btn sm ghost" data-action="admin-disable" data-email="${esc(u.email)}">Disable</button>`}
+              <button class="btn sm ghost danger" data-action="admin-delete" data-email="${esc(u.email)}">Delete</button>
+            `}</td>
+        </tr>`).join('');
+  el.innerHTML = `
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <span class="small muted">Signed in as ${esc(me.email)}</span>
+      <button class="btn sm primary" data-action="admin-invite">Invite user…</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Email</th><th>Role</th><th>Status</th><th>Data</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function inviteUserForm() {
+  openModal(`<h2>Invite user</h2><p class="small muted" style="margin-bottom:10px">Adds their email to the Cloudflare Access policy so they can reach health.me, and pre-creates their account with its own private data.</p>
+    <div class="field"><label for="inviteEmail">Email</label><input type="email" id="inviteEmail" placeholder="name@example.com" required></div>
+    <div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="button" class="btn primary" id="inviteGo">Invite</button></div>`);
+  $('#inviteGo').addEventListener('click', async () => {
+    const email = $('#inviteEmail').value.trim();
+    if (!email || !email.includes('@')) { toast('Enter a valid email'); return; }
+    const ok = await adminAction('POST', '/api/admin/users/invite', { email });
+    if (ok) { closeModal(); toast(`Invited ${email}`); await loadAdminUsers(); }
+  });
+}
+function deleteUserConfirm(email) {
+  openModal(`<h2>Delete ${esc(email)}?</h2><p>This permanently deletes their account and every program, vial, dose, lab result and genome finding they own, and removes their access. There is no undo.</p>
+    <div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="button" class="btn danger" id="deleteUserGo">Delete permanently</button></div>`);
+  $('#deleteUserGo').addEventListener('click', async () => {
+    const ok = await adminAction('DELETE', `/api/admin/users/${encodeURIComponent(email)}`);
+    if (ok) { closeModal(); toast(`Deleted ${email}`); await loadAdminUsers(); }
+  });
+}
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-action]'); if (!b) return;
+  const a = b.dataset.action;
+  switch (a) {
+    case 'close': closeModal(); break;
+    case 'admin-invite': inviteUserForm(); break;
+    case 'admin-disable': if (await adminAction('POST', `/api/admin/users/${encodeURIComponent(b.dataset.email)}/disable`)) { toast(`Disabled ${b.dataset.email}`); await loadAdminUsers(); } break;
+    case 'admin-enable': if (await adminAction('POST', `/api/admin/users/${encodeURIComponent(b.dataset.email)}/enable`)) { toast(`Enabled ${b.dataset.email}`); await loadAdminUsers(); } break;
+    case 'admin-toggle-admin': if (await adminAction('POST', `/api/admin/users/${encodeURIComponent(b.dataset.email)}/admin`, { is_admin: b.dataset.isAdmin === '1' })) { await loadAdminUsers(); } break;
+    case 'admin-delete': deleteUserConfirm(b.dataset.email); break;
+  }
+});
+
+(async () => {
+  try {
+    const res = await fetch('/api/me');
+    if (res.ok) me = await res.json();
+  } catch {}
+  renderAdmin();
+  if (me && me.is_admin) await loadAdminUsers();
+})();
+})();
+</script>

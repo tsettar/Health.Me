@@ -1,0 +1,786 @@
+<meta charset="utf-8">
+<title>Bloodwork</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#F3F5F4; --surface:#FFFFFF; --surface-2:#E9EEEC; --border:#D3DBD8; --divider:#E3E9E7;
+    --ink:#16201D; --muted:#5C6966; --faint:#8C9895;
+    --accent:#3D4FC4; --accent-ink:#FFFFFF; --accent-soft:#E4E7FA; --accent-line:#B7BEEF;
+    --good:#1F7A4D; --good-soft:#DDF1E6; --warn:#9A6400; --warn-soft:#FFF3CF; --today-soft:#FFF8E1; --bad:#BE3B3B; --bad-soft:#F9E0E0;
+    --chart-line:#3D4FC4;
+    --shadow:0 1px 2px rgba(22,32,29,.06), 0 8px 24px rgba(22,32,29,.06);
+    --font-display:'Manrope', 'Segoe UI', system-ui, sans-serif;
+    --font-body:'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+    --font-mono:'IBM Plex Mono', ui-monospace, Consolas, monospace;
+    --r-sm:6px; --r-md:10px; --r-lg:14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#0F1513; --surface:#171E1C; --surface-2:#1F2826; --border:#2C3735; --divider:#243030;
+      --ink:#E6ECE9; --muted:#A2AEAA; --faint:#6F7B78;
+      --accent:#8E9CFF; --accent-ink:#0F1513; --accent-soft:#252B4D; --accent-line:#3F4A8F;
+      --good:#6CCB95; --good-soft:#173325; --warn:#F0B35A; --warn-soft:#3A2F14; --today-soft:#2E2812; --bad:#F08080; --bad-soft:#3D1A1A;
+      --chart-line:#6F7FE8;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0F1513; --surface:#171E1C; --surface-2:#1F2826; --border:#2C3735; --divider:#243030;
+    --ink:#E6ECE9; --muted:#A2AEAA; --faint:#6F7B78;
+    --accent:#8E9CFF; --accent-ink:#0F1513; --accent-soft:#252B4D; --accent-line:#3F4A8F;
+    --good:#6CCB95; --good-soft:#173325; --warn:#F0B35A; --warn-soft:#3A2F14; --today-soft:#2E2812; --bad:#F08080; --bad-soft:#3D1A1A;
+    --chart-line:#6F7FE8;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 var(--font-body); -webkit-text-size-adjust:100%; }
+  button, input, select, textarea { font:inherit; color:inherit; }
+  h1,h2,h3,h4,p { margin:0; }
+  h1,h2,h3 { font-family:var(--font-display); text-wrap:balance; }
+  a { color:var(--accent); }
+  .num { font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+  .app { max-width:1100px; margin:0 auto; padding:16px 24px 64px; }
+
+  /* top bar */
+  .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 0 14px; }
+  .brand { display:flex; align-items:center; gap:12px; }
+  .brand-mark { width:36px; height:36px; border-radius:10px; background:var(--accent); display:grid; place-items:center; color:var(--accent-ink); }
+  .brand h1 { font-size:18px; font-weight:800; letter-spacing:-.01em; }
+  .brand .sub { font-size:12px; color:var(--muted); }
+  .topbar-right { display:flex; align-items:center; gap:8px; }
+  .storage { font-size:12px; color:var(--muted); display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border:1px solid var(--border); border-radius:999px; background:var(--surface); }
+  .storage i { width:8px; height:8px; border-radius:50%; background:var(--faint); display:inline-block; }
+  .storage.cloud i { background:var(--good); }
+  .storage.server i { background:var(--good); }
+  .storage.local i { background:var(--warn); }
+  .storage.file i { background:var(--accent); }
+  .crumb { font-size:13px; color:var(--muted); display:flex; gap:6px; align-items:center; margin-bottom:14px; }
+  .crumb a { color:var(--muted); text-decoration:none; } .crumb a:hover { color:var(--accent); }
+
+  .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .spacer { flex:1; }
+  .muted { color:var(--muted); }
+  .faint { color:var(--faint); }
+  .small { font-size:12px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:16px; }
+
+  .sec { padding-top:18px; margin-bottom:12px; }
+  .sec > .section-head h2 { font-size:20px; font-weight:800; letter-spacing:-.01em; }
+  .section-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
+  .chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; align-items:start; }
+  @media (max-width:900px) { .chart-grid { grid-template-columns:1fr; } }
+  .lab-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .lab-head h3 { font-size:15px; font-weight:700; }
+  .lab-head h3 small { color:var(--muted); font-weight:500; font-size:12px; margin-left:6px; }
+  .lab-hero { text-align:right; flex:none; }
+  .lab-hero .v { font-family:var(--font-body); font-weight:600; font-size:30px; line-height:1; letter-spacing:-.01em; }
+  .lab-hero .v small { font-size:13px; color:var(--muted); font-weight:500; margin-left:3px; }
+  .lab-meta { display:flex; gap:8px; align-items:center; justify-content:flex-end; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:4px; }
+  .lab-card .chart { margin-top:8px; }
+  .lab-card.hit { outline:2px solid var(--accent); outline-offset:2px; }
+  @media (max-width:640px) { .lab-head { flex-direction:column; } .lab-hero { text-align:left; } .lab-meta { justify-content:flex-start; } }
+
+  /* summary strip */
+  .strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-bottom:16px; }
+  .tile { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:12px 14px; }
+  .tile .k { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .tile .v { font-family:var(--font-display); font-size:26px; font-weight:800; line-height:1.15; margin-top:2px; }
+  .tile.good .v { color:var(--good); } .tile.warn .v { color:var(--warn); } .tile.bad .v { color:var(--bad); }
+  @media (max-width:760px) { .strip { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+  /* chips */
+  .chip { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:600; line-height:18px; border:1px solid transparent; }
+  .chip.accent { background:var(--accent-soft); color:var(--accent); }
+  .chip.good { background:var(--good-soft); color:var(--good); }
+  .chip.warn { background:var(--warn-soft); color:var(--warn); }
+  .chip.bad { background:var(--bad-soft); color:var(--bad); }
+  .chip.plain { background:var(--surface-2); color:var(--muted); }
+
+  /* buttons */
+  .btn { appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:var(--r-md); padding:9px 14px; font-weight:600; cursor:pointer; min-height:40px; display:inline-flex; align-items:center; justify-content:center; gap:6px; text-decoration:none; }
+  .btn:hover { background:var(--surface-2); }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+  .btn.primary:hover { filter:brightness(1.08); }
+  .btn.danger { color:var(--bad); }
+  .btn.sm { padding:5px 10px; min-height:30px; font-size:13px; }
+  .btn.ghost { border-color:transparent; background:transparent; }
+  .btn.ghost:hover { background:var(--surface-2); }
+  .btn[disabled] { opacity:.5; cursor:not-allowed; }
+  .gbtn { appearance:none; border:0; border-left:1px solid var(--border); background:var(--surface); color:var(--muted); font-size:12px; font-weight:600; padding:5px 10px; cursor:pointer; }
+  .gbtn:first-child { border-left:0; }
+  .gbtn[aria-selected="true"] { background:var(--accent); color:var(--accent-ink); }
+
+  /* tables */
+  .table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:var(--r-md); background:var(--surface); }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th, td { padding:9px 12px; text-align:left; border-bottom:1px solid var(--divider); vertical-align:middle; white-space:nowrap; }
+  th { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:600; background:var(--surface-2); }
+  tr:last-child td { border-bottom:0; }
+  td.num, th.num { text-align:right; }
+  td.actions { text-align:right; }
+
+  details summary { cursor:pointer; color:var(--accent); font-weight:600; font-size:13px; list-style:none; }
+  details summary::before { content:"▸ "; }
+  details[open] summary::before { content:"▾ "; }
+  .note-box { margin-top:10px; padding:10px 12px; background:var(--surface-2); border-radius:var(--r-sm); font-size:13px; white-space:pre-wrap; }
+
+  /* forms */
+  .form { display:grid; gap:12px; }
+  .grid2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; align-items:start; }
+  .field { display:grid; gap:4px; }
+  .field label { font-size:12px; font-weight:600; color:var(--muted); }
+  .field input, .field select, .field textarea { width:100%; border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface); padding:9px 10px; min-height:40px; }
+  .field textarea { min-height:80px; resize:vertical; }
+
+  /* modal */
+  .modal-bg { position:fixed; inset:0; background:rgba(10,14,13,.5); display:none; align-items:flex-end; justify-content:center; z-index:50; padding:0; }
+  .modal-bg.open { display:flex; }
+  .modal { background:var(--surface); width:100%; max-width:620px; max-height:92vh; overflow:auto; border-radius:16px 16px 0 0; padding:18px 18px 24px; border:1px solid var(--border); }
+  .modal h2 { font-size:17px; font-weight:800; margin-bottom:12px; }
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; flex-wrap:wrap; }
+  @media (min-width:640px) { .modal-bg { align-items:center; padding:20px; } .modal { border-radius:16px; } }
+
+  .chart { position:relative; }
+  .chart svg { width:100%; height:auto; display:block; }
+  .chart .tip { position:absolute; top:6px; transform:translateX(-50%); background:var(--ink); color:var(--bg); font-size:12px; padding:4px 8px; border-radius:6px; pointer-events:none; white-space:nowrap; }
+  .chart .tip b { font-family:var(--font-mono); }
+  .empty { text-align:center; padding:36px 16px; color:var(--muted); border:1px dashed var(--border); border-radius:var(--r-lg); }
+  .toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:10px 16px; border-radius:999px; font-weight:600; font-size:14px; box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:opacity .2s; z-index:60; }
+  .toast.show { opacity:1; }
+  @media (prefers-reduced-motion: reduce) { .toast { transition:none; } }
+</style>
+
+<div class="app">
+  <div class="crumb"><a href="../index.html">health.me</a> <span>/</span> <span>Bloodwork</span></div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 C12 3 6 10.5 6 15 a6 6 0 0 0 12 0 C18 10.5 12 3 12 3 Z"/></svg>
+      </div>
+      <div>
+        <h1>Bloodwork</h1>
+        <div class="sub">Lab markers, reference ranges and trends</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a class="btn sm ghost" href="genome.html">Genome →</a>
+      <a class="btn sm ghost" href="peptide-tracker.html">Stack Tracker →</a>
+      <span class="storage" id="storageBadge"><i></i><span>Loading</span></span>
+    </div>
+  </header>
+
+  <div id="labs"></div>
+</div>
+
+<div class="modal-bg" id="modalBg" role="dialog" aria-modal="true">
+  <div class="modal" id="modal"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- helpers ---------- */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+function P(iso) { return iso ? new Date(iso + 'T12:00:00') : null; }
+function ISO(d) { const z = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; }
+function fmtDate(d, withYear) { return d ? new Intl.DateTimeFormat('en-US', { month:'short', day:'numeric', ...(withYear ? {year:'numeric'} : {}) }).format(d) : '—'; }
+// Jan-1 timestamps strictly between from/to, for drawing a year-boundary marker on a chart's x-axis.
+function yearBoundaries(from, to) {
+  const out = []; const y0 = new Date(from).getFullYear(), y1 = new Date(to).getFullYear();
+  for (let y = y0 + 1; y <= y1; y++) { const t = new Date(y, 0, 1, 12, 0, 0).getTime(); if (t > from && t < to) out.push({ t, year: y }); }
+  return out;
+}
+function yearMarks(from, to, x, T, H, B) {
+  return yearBoundaries(from, to).map(yb => `<line x1="${x(yb.t)}" x2="${x(yb.t)}" y1="${T - 3}" y2="${H - B}" stroke="var(--divider)"/><text x="${x(yb.t) + 4}" y="${T - 7}" font-size="9" fill="var(--faint)" font-family="var(--font-body)">${yb.year}</text>`).join('');
+}
+function n(v, d=2) { if (!Number.isFinite(v)) return '—'; return Number(v.toFixed(d)).toString(); }
+function num(v) { const x = parseFloat(v); return Number.isFinite(x) ? x : null; }
+function niceStep(range, n) { const raw = range / n; const p = Math.pow(10, Math.floor(Math.log10(raw || 1))); const r = raw / p; return p * (r < 1.5 ? 1 : r < 3.5 ? 2 : r < 7.5 ? 5 : 10); }
+
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1800); }
+
+/* ---------- storage ---------- */
+const LS_KEY = 'bloodwork-v1';
+const COLLECTIONS = ['programs', 'vials', 'logs', 'settings', 'labs', 'genome'];
+// genome is a single doc, id 'main' — read-only here, for the "Genetic
+// context" cross-link on a lab card. Bloodwork never writes it; the Genome
+// app owns it.
+function genomeData() { return (store.data.genome && store.data.genome.main) || { summary: null, findings: [] }; }
+
+/* ---------- local file (File System Access API) ---------- */
+const PT_FS_DB = 'pt-fs', PT_FS_STORE = 'handles', PT_FS_KEY = 'data';
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(PT_FS_DB, 1);
+    req.onupgradeneeded = () => { req.result.createObjectStore(PT_FS_STORE); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbGetHandle() {
+  if (!('indexedDB' in window)) return null;
+  try {
+    const db = await idbOpen();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(PT_FS_STORE, 'readonly');
+      const req = tx.objectStore(PT_FS_STORE).get(PT_FS_KEY);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch { return null; }
+}
+async function idbSetHandle(handle) {
+  if (!('indexedDB' in window)) return;
+  const db = await idbOpen();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(PT_FS_STORE, 'readwrite');
+    tx.objectStore(PT_FS_STORE).put(handle, PT_FS_KEY);
+    tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbClearHandle() {
+  if (!('indexedDB' in window)) return;
+  try {
+    const db = await idbOpen();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(PT_FS_STORE, 'readwrite');
+      tx.objectStore(PT_FS_STORE).delete(PT_FS_KEY);
+      tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+    });
+  } catch {}
+}
+
+let pendingFileHandle = null;
+let fileWriteTimer = null;
+
+function setBadge(mode, name) {
+  const badge = $('#storageBadge');
+  if (!badge) return;
+  badge.onclick = null; badge.style.cursor = '';
+  if (mode === 'cloud') { badge.className = 'storage cloud'; badge.querySelector('span').textContent = 'Synced'; }
+  else if (mode === 'server') { badge.className = 'storage server'; badge.querySelector('span').textContent = name ? `Synced · ${name}` : 'Synced'; }
+  else if (mode === 'file') { badge.className = 'storage file'; badge.querySelector('span').textContent = `File: ${name || 'data file'}`; }
+  else if (mode === 'reconnect') {
+    badge.className = 'storage local'; badge.querySelector('span').textContent = `File: ${name || 'data file'} — click to reconnect`;
+    badge.style.cursor = 'pointer'; badge.onclick = () => reconnectFile();
+  } else { badge.className = 'storage local'; badge.querySelector('span').textContent = 'This device only'; }
+}
+
+async function reconnectFile() {
+  const handle = pendingFileHandle;
+  if (!handle) { toast('Nothing to reconnect'); return; }
+  let perm;
+  try { perm = await handle.requestPermission({ mode: 'readwrite' }); }
+  catch { toast('Could not request permission'); return; }
+  if (perm !== 'granted') { toast('Permission denied'); return; }
+  pendingFileHandle = null;
+  const ok = await store.connectFile(handle, { write: false });
+  if (ok) toast('Reconnected to ' + handle.name);
+}
+
+function scheduleFileWrite() {
+  if (!store.fileHandle) return;
+  clearTimeout(fileWriteTimer);
+  fileWriteTimer = setTimeout(flushFileWrite, 300);
+}
+async function flushFileWrite() {
+  if (!store.fileHandle) return;
+  try {
+    const writable = await store.fileHandle.createWritable();
+    await writable.write(JSON.stringify(store.data, null, 2));
+    await writable.close();
+  } catch (e) {
+    toast('Lost access to the data file — back to this device only');
+    store.fileHandle = null; store.mode = 'local';
+    await idbClearHandle();
+    setBadge('local');
+  }
+}
+
+const store = {
+  mode: 'loading', db: null, downloads: null, fileHandle: null, me: null,
+  data: { programs:{}, vials:{}, logs:{}, settings:{}, labs:{}, genome:{} },
+  get settings() { return this.data.settings.main || {}; },
+  loadLocal() { try { const raw = localStorage.getItem(LS_KEY); if (raw) this.data = { ...this.data, ...JSON.parse(raw) }; this.data.labs = this.data.labs || {}; this.data.genome = this.data.genome || {}; } catch {} },
+  saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(this.data)); } catch {} },
+  async connectFile(handle, opts = {}) {
+    if (!opts.write) {
+      let text;
+      try { const file = await handle.getFile(); text = await file.text(); }
+      catch { toast('Could not read the data file'); return false; }
+      if (text && text.trim()) {
+        let parsed;
+        try { parsed = JSON.parse(text); } catch { toast('That file is not valid JSON'); return false; }
+        for (const col of COLLECTIONS) this.data[col] = { ...(this.data[col] || {}), ...(parsed[col] || {}) };
+        this.saveLocal();
+      }
+    }
+    this.fileHandle = handle; this.mode = 'file';
+    try { await idbSetHandle(handle); } catch {}
+    setBadge('file', handle.name);
+    render();
+    await flushFileWrite();
+    return true;
+  },
+  async put(col, id, obj) {
+    obj = { ...obj, id };
+    if (this.db) { try { await this.db.collection(col).doc(id).set(obj); } catch (e) { toast('Save failed: ' + (e.message || e.code)); throw e; } }
+    else if (this.mode === 'server') {
+      try {
+        const res = await fetch(`/api/data/${col}/${encodeURIComponent(id)}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj),
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+      } catch (e) { toast('Save failed — check your connection'); throw e; }
+      this.data[col][id] = obj; render();
+    }
+    else { this.data[col][id] = obj; this.saveLocal(); render(); if (this.mode === 'file') scheduleFileWrite(); }
+  },
+  async putMany(col, recordsById) {
+    const ids = Object.keys(recordsById);
+    if (!ids.length) return 0;
+    if (this.db) {
+      this.bulkImporting = true;
+      try {
+        for (const id of ids) {
+          const obj = { ...recordsById[id], id };
+          try { await this.db.collection(col).doc(id).set(obj); } catch (e) { toast('Save failed: ' + (e.message || e.code)); throw e; }
+        }
+      } finally { this.bulkImporting = false; }
+    } else if (this.mode === 'server') {
+      try {
+        const res = await fetch(`/api/data/${col}/batch`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(recordsById),
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+      } catch (e) { toast('Import failed — check your connection'); throw e; }
+      for (const id of ids) this.data[col][id] = { ...recordsById[id], id };
+    } else {
+      for (const id of ids) this.data[col][id] = { ...recordsById[id], id };
+      this.saveLocal();
+      if (this.mode === 'file') scheduleFileWrite();
+    }
+    render();
+    return ids.length;
+  },
+  async del(col, id) {
+    if (this.db) { try { await this.db.collection(col).doc(id).delete(); } catch (e) { toast('Delete failed: ' + (e.message || e.code)); throw e; } }
+    else if (this.mode === 'server') {
+      try {
+        const res = await fetch(`/api/data/${col}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+      } catch (e) { toast('Delete failed — check your connection'); throw e; }
+      delete this.data[col][id]; render();
+    }
+    else { delete this.data[col][id]; this.saveLocal(); render(); if (this.mode === 'file') scheduleFileWrite(); }
+  },
+  async init() {
+    let db = null;
+    try { db = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch { db = null; }
+    if (db) {
+      this.db = db; this.mode = 'cloud';
+      setBadge('cloud');
+      let pending = COLLECTIONS.length;
+      const done = () => { if (--pending <= 0 && !this.ready) { this.ready = true; render(); } else if (this.ready && !this.bulkImporting) render(); };
+      for (const col of COLLECTIONS) {
+        db.collection(col).onSnapshot(snap => {
+          const o = {}; snap.docs.forEach(d => { if (d.exists) o[d.id] = d.data(); });
+          this.data[col] = o; done();
+        }, err => { toast('Sync error: ' + err.code); done(); });
+      }
+      setTimeout(() => { if (!this.ready) { this.ready = true; render(); } }, 8000);
+    } else {
+      let serverOk = false;
+      try {
+        const meRes = await fetch('/api/me');
+        if (meRes.ok) {
+          const me = await meRes.json();
+          const dataRes = await fetch('/api/data');
+          if (dataRes.ok) {
+            this.me = me;
+            this.data = await dataRes.json();
+            this.mode = 'server'; this.ready = true; serverOk = true;
+            setBadge('server', me.email);
+          }
+        }
+      } catch { /* not served by our backend */ }
+      if (!serverOk) {
+        this.mode = 'local'; this.loadLocal(); this.ready = true;
+        setBadge('local');
+        if ('showOpenFilePicker' in window) {
+          try {
+            const handle = await idbGetHandle();
+            if (handle) {
+              const perm = await handle.queryPermission({ mode: 'readwrite' });
+              if (perm === 'granted') { await this.connectFile(handle, { write: false }); }
+              else { pendingFileHandle = handle; setBadge('reconnect', handle.name); }
+            }
+          } catch {}
+        }
+      }
+      render();
+    }
+    try { this.downloads = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch { this.downloads = null; }
+  }
+};
+
+const labs = () => Object.values(store.data.labs || {}).sort((a, b) => a.at.localeCompare(b.at));
+
+/* ---------- lab marker catalog ---------- */
+const LAB_MARKERS = [
+  { id:"E2", name:"Estradiol (E2)", unit:"pg/mL", group:"Hormones", aliases:["Estradiol"], info:{high:"In men, elevated estradiol often reflects aromatization of testosterone (more with higher body fat, or during testosterone therapy) and can contribute to water retention or breast tenderness; reviewed alongside testosterone and SHBG.",low:"Low estradiol in men can affect bone density and lipids over time, and often tracks with low testosterone.",related:["TT","FT","SHBG"]} },
+  { id:"TT", name:"Total testosterone", unit:"ng/dL", group:"Hormones", aliases:["Total Testosterone"], info:{high:"Values above range often reflect ongoing testosterone therapy/supplementation; less commonly an adrenal or testicular source. Usually read together with Free Testosterone and SHBG, since SHBG governs how much stays bound vs. bioavailable.",low:"Low total testosterone (with symptoms) is the basis for a hypogonadism work-up; LH and FSH help distinguish a testicular (primary) cause from a pituitary/hypothalamic (secondary) one.",related:["FT","SHBG","LH","FSH","E2"]} },
+  { id:"FT", name:"Free testosterone", unit:"pg/mL", group:"Hormones", aliases:["Free Testosterone"], info:{high:"The biologically active fraction; commonly runs high during testosterone therapy.",low:"Low free testosterone drives most of the symptoms associated with low T (energy, libido, etc.). Check alongside SHBG — a high SHBG can push free T low even when total T looks normal — and LH/FSH to localize the cause.",related:["TT","SHBG","LH","FSH"]} },
+  { id:"SHBG", name:"SHBG", unit:"nmol/L", group:"Hormones", aliases:["SHBG"], info:{high:"Sex hormone-binding globulin binds testosterone and estradiol, making them less bioavailable; high SHBG can lower free testosterone even when total testosterone is normal.",low:"Low SHBG raises the free fraction of hormones relative to total; commonly seen with obesity, insulin resistance, or hypothyroidism.",related:["TT","FT","E2"]} },
+  { id:"LH", name:"LH", unit:"mIU/mL", group:"Hormones", aliases:["LH"], info:{high:"Elevated LH with low testosterone points toward a testicular (primary) cause — the pituitary is appropriately signaling for more production but the testes aren't responding.",low:"Low LH alongside low testosterone points toward a pituitary/hypothalamic (secondary) cause rather than a testicular one.",related:["FSH","TT","FT"]} },
+  { id:"FSH", name:"FSH", unit:"mIU/mL", group:"Hormones", aliases:["FSH"], info:{high:"Elevated FSH can reflect reduced testicular reserve/function.",low:"Low FSH alongside low testosterone (like low LH) points toward a pituitary/hypothalamic origin rather than testicular.",related:["LH","TT"]} },
+  { id:"PRL", name:"Prolactin", unit:"ng/mL", group:"Hormones", aliases:["Prolactin"], info:{high:"Can rise with stress, certain medications, or (if significantly and persistently elevated) a pituitary adenoma; often assessed alongside LH/FSH/testosterone since it can suppress that axis.",related:["LH","FSH","TT"]} },
+  { id:"DHEAS", name:"DHEA-S", unit:"µg/dL", group:"Hormones", aliases:["DHEA-S"], info:{related:["CORT","TT"]} },
+  { id:"IGF1", name:"IGF-1", unit:"ng/mL", group:"Hormones", aliases:["IGF-1"], info:{high:"Reflects growth hormone activity over recent weeks.",low:"Can reflect reduced growth hormone secretion.",related:[]} },
+  { id:"CORT", name:"Cortisol (AM)", unit:"µg/dL", group:"Hormones", aliases:["Cortisol"], info:{high:"Can reflect acute stress, time of day (cortisol peaks in the morning), or less commonly an adrenal issue if persistently elevated.",low:"Can reflect adrenal insufficiency if persistent and unexplained, or simply a later-in-the-day draw given cortisol's daily rhythm.",related:["DHEAS"]} },
+  { id:"PREG", name:"Pregnenolone", unit:"ng/dL", group:"Hormones", aliases:["Pregnenolone"] },
+  { id:"PROG", name:"Progesterone", unit:"ng/mL", group:"Hormones", aliases:["Progesterone","Progesterone (Endocrine)"], info:{low:"In men, progesterone runs low by default and isn't a primary marker clinicians track; an isolated low value is rarely meaningful.",related:["E2","TT"]} },
+  { id:"TSH", name:"TSH", unit:"mIU/L", group:"Thyroid", aliases:["TSH"], info:{high:"Elevated TSH with a low/low-normal Free T4 suggests an underactive thyroid (hypothyroidism); TSH is the most sensitive first-line screen and moves inversely to thyroid hormone output.",low:"Low TSH suggests an overactive thyroid, or that thyroid replacement (if any) is dosed on the higher side; usually confirmed with Free T4/T3.",related:["FT4","TT4","FT3"]} },
+  { id:"FT4", name:"Free T4", unit:"ng/dL", group:"Thyroid", aliases:["Free T4"], info:{high:"Elevated Free T4 with low TSH suggests hyperthyroidism.",low:"Low Free T4 with high TSH suggests hypothyroidism.",related:["TSH","TT4","FT3"]} },
+  { id:"FT3", name:"Free T3", unit:"pg/mL", group:"Thyroid", aliases:["Free T3"] },
+  { id:"TT3", name:"Total T3", unit:"ng/dL", group:"Thyroid", aliases:["Total T3"] },
+  { id:"TT4", name:"Total T4", unit:"µg/dL", group:"Thyroid", aliases:["Total T4"], info:{high:"Read alongside TSH and Free T4 for thyroid status.",low:"Read alongside TSH and Free T4 for thyroid status.",related:["TSH","FT4"]} },
+  { id:"RT3", name:"Reverse T3", unit:"ng/dL", group:"Thyroid", aliases:["Reverse T3"] },
+  { id:"TGAB", name:"Thyroglobulin antibody", unit:"IU/mL", group:"Thyroid", aliases:["Thyroglobulin Ab"] },
+  { id:"TPOAB", name:"Thyroid peroxidase antibody", unit:"IU/mL", group:"Thyroid", aliases:["Thyroid Peroxidase Ab"] },
+  { id:"HCT", name:"Hematocrit", unit:"%", group:"CBC", aliases:["Hematocrit"], info:{high:"Can reflect dehydration at the time of the draw, or — notably — is a known, expected effect of testosterone therapy increasing red blood cell production. Persistently high levels are tracked to avoid excessive blood viscosity.",related:["RBC","HGB","TT"]} },
+  { id:"HGB", name:"Hemoglobin", unit:"g/dL", group:"CBC", aliases:["Hemoglobin"], info:{high:"Tends to move with hematocrit and RBC; can rise with testosterone therapy or dehydration.",related:["HCT","RBC"]} },
+  { id:"RBC", name:"RBC", unit:"M/µL", group:"CBC", aliases:["RBC"], info:{high:"Reflects red cell production; commonly rises somewhat during testosterone therapy, similar to hematocrit.",related:["HCT","HGB","TT"]} },
+  { id:"WBC", name:"WBC", unit:"K/µL", group:"CBC", aliases:["WBC"], info:{high:"Can reflect infection, inflammation, physical stress, or (rarely) a blood disorder if persistently elevated without an obvious cause.",low:"Can reflect viral illness, certain medications, or reduced bone marrow production if persistent.",related:[]} },
+  { id:"PLT", name:"Platelets", unit:"K/µL", group:"CBC", aliases:["Platelet Count"], info:{high:"Can reflect inflammation, iron deficiency, or a reactive response to stress/illness.",low:"Can increase bleeding/bruising risk if low enough; causes range from viral illness to medication effects to marrow production issues.",related:[]} },
+  { id:"MCV", name:"MCV", unit:"fL", group:"CBC", aliases:["MCV"], info:{high:"Larger-than-average red cells can reflect B12/folate deficiency, alcohol use, or thyroid issues.",low:"Smaller-than-average red cells often reflect iron deficiency.",related:["FERR","IRON","RDW"]} },
+  { id:"MCH", name:"MCH", unit:"pg", group:"CBC", aliases:["MCH"] },
+  { id:"MCHC", name:"MCHC", unit:"g/dL", group:"CBC", aliases:["MCHC"] },
+  { id:"RDW", name:"RDW", unit:"%", group:"CBC", aliases:["RDW"], info:{high:"Means red blood cells vary more in size than usual — often an early sign of a developing nutritional deficiency (iron, B12, or folate), sometimes appearing before other red cell indices change.",related:["MCV","FERR","IRON"]} },
+  { id:"MPV", name:"MPV", unit:"fL", group:"CBC", aliases:["MPV"] },
+  { id:"NEUT_ABS", name:"Neutrophils (absolute)", unit:"K/µL", group:"CBC", aliases:["Absolute Neutrophils"] },
+  { id:"NEUT_PCT", name:"Neutrophils %", unit:"%", group:"CBC", aliases:["Neutrophils %"] },
+  { id:"LYMPH_ABS", name:"Lymphocytes (absolute)", unit:"K/µL", group:"CBC", aliases:["Absolute Lymphocytes"] },
+  { id:"LYMPH_PCT", name:"Lymphocytes %", unit:"%", group:"CBC", aliases:["Lymphocytes %"] },
+  { id:"MONO_ABS", name:"Monocytes (absolute)", unit:"K/µL", group:"CBC", aliases:["Absolute Monocytes"] },
+  { id:"MONO_PCT", name:"Monocytes %", unit:"%", group:"CBC", aliases:["Monocytes %"] },
+  { id:"EOS_ABS", name:"Eosinophils (absolute)", unit:"K/µL", group:"CBC", aliases:["Absolute Eosinophils"] },
+  { id:"EOS_PCT", name:"Eosinophils %", unit:"%", group:"CBC", aliases:["Eosinophils %"] },
+  { id:"BASO_ABS", name:"Basophils (absolute)", unit:"K/µL", group:"CBC", aliases:["Absolute Basophils"] },
+  { id:"BASO_PCT", name:"Basophils %", unit:"%", group:"CBC", aliases:["Basophils %"] },
+  { id:"IG_PCT", name:"Immature granulocytes %", unit:"%", group:"CBC", aliases:["Immature Granulocytes"] },
+  { id:"IG_ABS", name:"Immature granulocytes (absolute)", unit:"K/µL", group:"CBC", aliases:["Immature Granulocytes Absolute"] },
+  { id:"FERR", name:"Ferritin", unit:"ng/mL", group:"Iron", aliases:["Ferritin"], info:{high:"Ferritin also rises with inflammation, so an elevated level can mean true iron overload or simply a nonspecific inflammatory response — Iron Saturation helps tell these apart.",low:"A sensitive marker of depleted iron stores; if low enough, it precedes iron-deficiency anemia. Usually reviewed with Iron, TIBC/Iron Saturation, and the red cell indices (MCV, RBC, Hemoglobin, RDW).",related:["IRON","TIBC","TSAT","MCV","RBC","RDW","HGB"]} },
+  { id:"IRON", name:"Iron", unit:"µg/dL", group:"Iron", aliases:["Iron"], info:{high:"Can reflect iron overload or recent supplementation; read with Ferritin and Iron Saturation.",low:"Can reflect depleted iron stores; read with Ferritin, TIBC, and Iron Saturation.",related:["FERR","TIBC","TSAT"]} },
+  { id:"TIBC", name:"TIBC", unit:"µg/dL", group:"Iron", aliases:["TIBC"], info:{high:"A high total iron-binding capacity typically reflects lower iron stores, since the body raises binding capacity when iron is scarce — often rises alongside low ferritin/iron.",low:"Can reflect higher iron stores, inflammation, or liver disease.",related:["FERR","IRON","TSAT"]} },
+  { id:"UIBC", name:"UIBC", unit:"µg/dL", group:"Iron", aliases:["UIBC"] },
+  { id:"TSAT", name:"Iron saturation", unit:"%", group:"Iron", aliases:["Iron Saturation"], info:{high:"Suggests iron overload when persistently elevated.",low:"Suggests iron deficiency.",related:["FERR","IRON","TIBC"]} },
+  { id:"VITD", name:"Vitamin D (25-OH)", unit:"ng/mL", group:"Vitamins", aliases:["Vitamin D"], info:{low:"Vitamin D deficiency is common and can affect bone health, immune function, and (per some evidence) energy/mood; typically addressed with supplementation and rechecked in a few months.",related:["CA"]} },
+  { id:"B12", name:"Vitamin B12", unit:"pg/mL", group:"Vitamins" },
+  { id:"FOL", name:"Folate", unit:"ng/mL", group:"Vitamins" },
+  { id:"MG", name:"Magnesium", unit:"mg/dL", group:"Vitamins", aliases:["Magnesium"] },
+  { id:"ZN", name:"Zinc", unit:"µg/dL", group:"Vitamins" },
+  { id:"GLU", name:"Fasting glucose", unit:"mg/dL", group:"Metabolic", aliases:["Glucose"], info:{high:"Elevated fasting glucose points toward insulin resistance, or prediabetes/diabetes if persistent or paired with an elevated A1c. A non-fasting draw can also transiently elevate this.",low:"Low glucose can simply reflect a fasting state, or medication effects; recurrent symptomatic lows warrant follow-up.",related:["A1C","TG"]} },
+  { id:"A1C", name:"HbA1c", unit:"%", group:"Metabolic", aliases:["Hemoglobin A1c"], info:{high:"Reflects average blood glucose over roughly the prior 2–3 months; sustained elevation is the basis for a prediabetes/diabetes diagnosis and should track with fasting glucose trends.",low:"Not typically significant on its own.",related:["GLU"]} },
+  { id:"INS", name:"Fasting insulin", unit:"µIU/mL", group:"Metabolic", aliases:["Insulin","Insulin, Fasting"] },
+  { id:"CA", name:"Calcium", unit:"mg/dL", group:"Metabolic", aliases:["Calcium"] },
+  { id:"CO2", name:"Carbon dioxide", unit:"mmol/L", group:"Metabolic", aliases:["Carbon Dioxide"], info:{high:"Reflects blood bicarbonate/buffering capacity; a mild, isolated elevation is often a benign lab or specimen-handling variant, but a persistent rise can reflect metabolic alkalosis or compensation for a respiratory issue.",low:"Can indicate metabolic acidosis.",related:["NA","K","CL"]} },
+  { id:"CL", name:"Chloride", unit:"mmol/L", group:"Metabolic", aliases:["Chloride"] },
+  { id:"K", name:"Potassium", unit:"mmol/L", group:"Metabolic", aliases:["Potassium"] },
+  { id:"NA", name:"Sodium", unit:"mmol/L", group:"Metabolic", aliases:["Sodium"] },
+  { id:"TC", name:"Total cholesterol", unit:"mg/dL", group:"Lipids", aliases:["Total Cholesterol"], info:{high:"Total cholesterol combines all the cholesterol carried by LDL, HDL, and other lipoproteins. On its own it's a blunt instrument — clinicians generally weight the individual components (LDL, HDL, triglycerides) more heavily than the total when judging cardiovascular risk.",low:"Low total cholesterol is uncommon and rarely a concern by itself; very low levels can occasionally reflect malnutrition, hyperthyroidism, or liver disease.",related:["LDL","HDL","TG","NONHDL"]} },
+  { id:"LDL", name:"LDL", unit:"mg/dL", group:"Lipids", aliases:["LDL Cholesterol"], info:{high:"LDL ('bad') cholesterol delivers cholesterol to tissues; persistently elevated levels are linked to arterial plaque build-up and long-term cardiovascular risk. It's usually read together with HDL and triglycerides rather than alone.",low:"Low LDL is generally favorable for cardiovascular risk.",related:["TC","HDL","TG","NONHDL"]} },
+  { id:"HDL", name:"HDL", unit:"mg/dL", group:"Lipids", aliases:["HDL Cholesterol"], info:{high:"HDL ('good') cholesterol helps clear cholesterol from tissues back to the liver; higher levels are generally considered protective.",low:"Low HDL is associated with higher cardiovascular risk and often travels with elevated triglycerides or insulin resistance.",related:["LDL","TG","TC"]} },
+  { id:"TG", name:"Triglycerides", unit:"mg/dL", group:"Lipids", aliases:["Triglycerides"], info:{high:"Elevated triglycerides often track with diet (sugar, alcohol, refined carbs), excess body fat, or insulin resistance, and at high levels raise cardiovascular and pancreatitis risk. Frequently rises alongside low HDL.",low:"Low triglycerides are rarely clinically significant.",related:["HDL","LDL","GLU","A1C"]} },
+  { id:"NONHDL", name:"Non-HDL cholesterol", unit:"mg/dL", group:"Lipids", aliases:["Non-HDL Cholesterol"], info:{high:"Captures LDL plus other atherogenic lipoproteins in one number; many clinicians treat it as a slightly better cardiovascular risk marker than LDL alone, especially when triglycerides are elevated.",related:["LDL","TG","TC"]} },
+  { id:"VLDL", name:"VLDL cholesterol", unit:"mg/dL", group:"Lipids", aliases:["VLDL Cholesterol"] },
+  { id:"CHOL_HDL_RATIO", name:"Cholesterol/HDL ratio", unit:"", group:"Lipids", aliases:["Cholesterol/HDL Ratio"] },
+  { id:"APOB", name:"ApoB", unit:"mg/dL", group:"Lipids" },
+  { id:"LPA", name:"Lp(a)", unit:"nmol/L", group:"Lipids" },
+  { id:"ALT", name:"ALT", unit:"U/L", group:"Liver & kidney", aliases:["ALT"], info:{high:"ALT is concentrated in the liver, so elevation suggests hepatocyte stress; commonly related to alcohol, fatty liver, medications/supplements, or a recent hard workout. Usually read together with AST.",related:["AST","ALP","BILI_T"]} },
+  { id:"AST", name:"AST", unit:"U/L", group:"Liver & kidney", aliases:["AST"], info:{high:"AST is found in both liver and muscle, so elevation can reflect liver stress or simply recent intense exercise/muscle strain; the AST:ALT pattern helps narrow the likely cause.",related:["ALT","ALP"]} },
+  { id:"GGT", name:"GGT", unit:"U/L", group:"Liver & kidney", aliases:["GGT"] },
+  { id:"ALP", name:"Alkaline phosphatase", unit:"U/L", group:"Liver & kidney", aliases:["Alkaline Phosphatase"], info:{high:"Can originate from liver or bone turnover; usually interpreted with GGT (liver-specific) or bone-related context.",low:"Less commonly significant; occasionally seen with certain nutrient deficiencies (e.g., zinc, B6) or as an individual variant.",related:["ALT","AST","BILI_T"]} },
+  { id:"ALB", name:"Albumin", unit:"g/dL", group:"Liver & kidney", aliases:["Albumin"], info:{high:"Usually reflects dehydration/hemoconcentration at the time of the draw rather than true overproduction.",low:"Can reflect liver disease, inflammation, or malnutrition — read with total protein and globulin.",related:["TPROT","GLOB","AG_RATIO"]} },
+  { id:"GLOB", name:"Globulin", unit:"g/dL", group:"Liver & kidney", aliases:["Globulin"] },
+  { id:"AG_RATIO", name:"Albumin/Globulin ratio", unit:"", group:"Liver & kidney", aliases:["Albumin/Globulin Ratio"], info:{high:"A high A/G ratio (relatively less globulin) is less commonly a clinical concern than a low ratio.",low:"A low A/G ratio (relatively more globulin) can reflect chronic inflammation, infection, or a plasma cell disorder if persistent.",related:["ALB","GLOB","TPROT"]} },
+  { id:"TPROT", name:"Total protein", unit:"g/dL", group:"Liver & kidney", aliases:["Total Protein"] },
+  { id:"BILI_T", name:"Bilirubin (total)", unit:"mg/dL", group:"Liver & kidney", aliases:["Bilirubin Total"] },
+  { id:"BILI_D", name:"Bilirubin (direct)", unit:"mg/dL", group:"Liver & kidney", aliases:["Bilirubin Direct"] },
+  { id:"CREA", name:"Creatinine", unit:"mg/dL", group:"Liver & kidney", aliases:["Creatinine"], info:{high:"A muscle-metabolism byproduct cleared by the kidneys; elevation can reflect reduced kidney filtration, dehydration at the time of the draw, or simply higher muscle mass — read together with eGFR and BUN.",low:"Usually reflects lower muscle mass and is rarely concerning alone.",related:["EGFR","BUN","BUN_CREA_RATIO"]} },
+  { id:"EGFR", name:"eGFR", unit:"mL/min", group:"Liver & kidney", aliases:["eGFR"], info:{low:"An estimate of kidney filtration rate; a low or declining eGFR over time suggests reduced kidney function and is read alongside creatinine and BUN.",related:["CREA","BUN"]} },
+  { id:"BUN", name:"BUN", unit:"mg/dL", group:"Liver & kidney", aliases:["BUN"], info:{high:"Can rise with dehydration, high protein intake, or reduced kidney clearance.",low:"Can reflect low protein intake or liver disease.",related:["CREA","EGFR"]} },
+  { id:"BUN_CREA_RATIO", name:"BUN/Creatinine ratio", unit:"", group:"Liver & kidney", aliases:["BUN/Creatinine Ratio"] },
+  { id:"CRP", name:"hs-CRP", unit:"mg/L", group:"Inflammation", aliases:["hs-CRP"], info:{high:"A general inflammation marker; can be elevated by infection, injury, or the chronic low-grade inflammation associated with cardiovascular risk.",related:[]} },
+  { id:"HCY", name:"Homocysteine", unit:"µmol/L", group:"Inflammation", aliases:["Homocysteine"], info:{high:"Elevated homocysteine is associated with cardiovascular risk and often relates to B12/folate status.",related:["VITD"]} },
+  { id:"PSA", name:"PSA", unit:"ng/mL", group:"Other", aliases:["PSA"], info:{high:"Elevated PSA can reflect prostate enlargement (BPH), inflammation/infection, or recent ejaculation, and less commonly prostate cancer. The trend over time and free/total PSA ratio are more informative than any single value.",related:[]} },
+  { id:"BP", name:"Blood pressure (systolic)", unit:"mmHg", group:"Other" },
+  { id:"WT", name:"Body weight", unit:"lb", group:"Other" },
+  { id:"OTHER", name:"Other…", unit:"", group:"Other" },
+];
+const LAB_GROUPS = [...new Set(LAB_MARKERS.map(m => m.group))];
+const LAB_BY_ID = id => LAB_MARKERS.find(m => m.id === id);
+const LAB_DEFAULT_INFO = "This value fell outside the standard reference range. A single out-of-range reading is often less informative than the trend over multiple draws — worth mentioning to your provider, especially if it repeats.";
+/* gene (as it appears on a genome finding's .gene) -> lab marker ids with an obvious counterpart — read-only mirror
+   of the same table in genome.html/peptide-tracker.html, kept in sync by hand since each app is self-contained. */
+const GENE_MARKERS = {
+  FTO: ['WT'],
+  GCK: ['GLU', 'A1C'],
+  CDKAL1: ['GLU', 'A1C'],
+  MTNR1B: ['GLU', 'A1C'],
+  CBS: ['HCY', 'FOL', 'B12'],
+  UMOD: ['CREA', 'EGFR'],
+  'CDKN2B-AS1': ['TC', 'LDL', 'HDL', 'TG', 'APOB'],
+  MIA3: ['TC', 'LDL', 'HDL', 'TG', 'APOB'],
+};
+const MARKER_GENES = {};
+for (const [gene, ids] of Object.entries(GENE_MARKERS)) for (const mid of ids) (MARKER_GENES[mid] = MARKER_GENES[mid] || []).push(gene);
+
+function labForm(preset) {
+  openModal(`<h2>Log a lab result</h2><form class="form" id="labForm">
+    <div class="grid2">
+      <div class="field"><label for="lb-marker">Marker</label><select id="lb-marker" name="marker">${LAB_GROUPS.map(g => `<optgroup label="${g}">${LAB_MARKERS.filter(m => m.group === g).map(m => `<option value="${m.id}" ${m.id === (preset || 'E2') ? 'selected' : ''}>${esc(m.name)}${m.unit ? ' · ' + esc(m.unit) : ''}</option>`).join('')}</optgroup>`).join('')}</select></div>
+      <div class="field"><label for="lb-date">Date</label><input id="lb-date" name="at" type="date" value="${ISO(new Date())}" required></div>
+    </div>
+    <div class="grid2" id="lb-other" hidden>
+      <div class="field"><label for="lb-name">Marker name</label><input id="lb-name" name="name" placeholder="e.g. LH"></div>
+      <div class="field"><label for="lb-unit">Unit</label><input id="lb-unit" name="unit" placeholder="e.g. mIU/mL"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label for="lb-value">Value <span class="faint" id="lb-unitlabel"></span></label><input id="lb-value" name="value" type="text" inputmode="decimal" required></div>
+      <div class="field"><label for="lb-note">Note</label><input id="lb-note" name="note" placeholder="Lab, time of day, days since dose…"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label for="lb-reflow">Reference low <span class="faint">(optional)</span></label><input id="lb-reflow" name="refLow" type="text" inputmode="decimal"></div>
+      <div class="field"><label for="lb-refhigh">Reference high <span class="faint">(optional)</span></label><input id="lb-refhigh" name="refHigh" type="text" inputmode="decimal"></div>
+    </div>
+    <div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="submit" class="btn primary">Save result</button></div></form>`);
+  const form = $('#labForm');
+  const sync = () => { const m = LAB_BY_ID(form.marker.value); $('#lb-other').hidden = form.marker.value !== 'OTHER'; $('#lb-unitlabel').textContent = m && m.unit ? '(' + m.unit + ')' : ''; };
+  form.marker.addEventListener('change', sync); sync();
+  form.addEventListener('submit', async e => {
+    e.preventDefault(); const fd = new FormData(form); const v = num(fd.get('value')); if (v == null) return;
+    const m = LAB_BY_ID(fd.get('marker'));
+    const other = fd.get('marker') === 'OTHER';
+    const unit = other ? fd.get('unit').trim() : m.unit;
+    const refLow = num(fd.get('refLow')), refHigh = num(fd.get('refHigh'));
+    const obj = {
+      marker: other ? (fd.get('name').trim() || 'Other') : m.id,
+      name: other ? (fd.get('name').trim() || 'Other') : m.name,
+      unit, value: v, at: fd.get('at'), note: fd.get('note').trim(), createdAt: new Date().toISOString(),
+    };
+    if (refLow != null) obj.refLow = refLow;
+    if (refHigh != null) obj.refHigh = refHigh;
+    if (refLow != null && refHigh != null) {
+      obj.refText = `${n(refLow, 1)}-${n(refHigh, 1)}${unit ? ' ' + unit : ''}`;
+      obj.flag = v < refLow ? 'Low' : v > refHigh ? 'High' : 'Normal';
+    }
+    closeModal(); await store.put('labs', uid(), obj); toast('Lab result saved');
+  });
+}
+function labOut(e) { return (e.refHigh != null && e.value > e.refHigh) || (e.refLow != null && e.value < e.refLow) || e.flag === 'High' || e.flag === 'Low'; }
+function labFlag(e) { if (e.flag) return e.flag; if (!labOut(e)) return (e.refLow != null || e.refHigh != null) ? 'Normal' : null; return e.refHigh != null && e.value > e.refHigh ? 'High' : 'Low'; }
+function refRangeText(r) { if (!r) return ''; if (r.refLow != null && r.refHigh != null) return `${n(r.refLow, 1)}–${n(r.refHigh, 1)}`; if (r.refHigh != null) return `≤ ${n(r.refHigh, 1)}`; if (r.refLow != null) return `≥ ${n(r.refLow, 1)}`; return ''; }
+
+const chartData = {};
+function labsChart(key, entries, band) {
+  const id = 'lab-' + key.replace(/[^\w-]/g, '_');
+  const W = 760, H = 190, L = 46, R = 16, T = 22, B = 12;
+  const unit = entries[0].unit || '';
+  const pts = entries.map(e => ({ t: new Date(e.at + 'T12:00:00').getTime(), v: e.value, note: e.note, flag: labFlag(e), bad: labOut(e), ref: refRangeText(e), source: e.source }));
+  const vals = pts.map(q => q.v);
+  if (band) { if (band.refLow != null) vals.push(band.refLow); if (band.refHigh != null) vals.push(band.refHigh); }
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = (hi - lo) * 0.12 || Math.abs(hi) * 0.1 || 1; const yMin = Math.max(0, lo - pad), yMax = hi + pad;
+  const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+  const span = Math.max(t1 - t0, 30 * 86400e3); const from = t0 - span * 0.03, to = t1 + span * 0.03;
+  const x = t => L + (t - from) / (to - from) * (W - L - R);
+  const y = v => T + (1 - (v - yMin) / (yMax - yMin)) * (H - T - B);
+  const step = niceStep(yMax - yMin, 3);
+  let grid = ''; for (let v = Math.ceil(yMin / step) * step; v <= yMax; v += step) grid += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--divider)"/><text x="${L - 8}" y="${y(v) + 3}" font-size="10" text-anchor="end" fill="var(--muted)" font-family="var(--font-body)" style="font-variant-numeric:tabular-nums">${n(v, step < 1 ? 1 : 0)}</text>`;
+  const bandRect = band ? `<rect x="${L}" y="${y(band.refHigh ?? yMax)}" width="${W - L - R}" height="${Math.max(0, y(band.refLow ?? yMin) - y(band.refHigh ?? yMax))}" fill="var(--surface-2)" opacity=".7"/>` : '';
+  const path = pts.map((q, i) => `${i ? 'L' : 'M'}${x(q.t).toFixed(1)},${y(q.v).toFixed(1)}`).join(' ');
+  const last = pts[pts.length - 1];
+  const dots = pts.map(q => {
+    const c = q.bad ? 'var(--bad)' : 'var(--chart-line)'; const isLast = q === last;
+    return `${isLast ? `<circle cx="${x(q.t)}" cy="${y(q.v)}" r="9" fill="${c}" opacity=".18"/>` : ''}<circle cx="${x(q.t)}" cy="${y(q.v)}" r="${isLast ? 5.5 : 4}" fill="${c}" stroke="var(--surface)" stroke-width="2"/>`;
+  }).join('');
+  chartData[id] = { pts, L, R, W, x0: from, x1: to, fmt: v => `${n(v, 1)} ${unit}`, extra: q => `${q.flag ? ' · ' + q.flag : ''}${q.ref ? ' · ref ' + q.ref : ''}${q.source ? ' · ' + q.source : ''}`, y, x, snap: true };
+  return `<div class="chart" data-chart="${id}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(entries[0].name)} over time">${bandRect}${grid}${yearMarks(from, to, x, T, H, B)}
+    <path d="${path}" fill="none" stroke="var(--chart-line)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}
+    <line class="xh" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--ink)" opacity="0"/>
+    <circle class="xd" cx="0" cy="0" r="5" fill="var(--chart-line)" stroke="var(--surface)" stroke-width="2" opacity="0"/>
+    <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" class="hit"/>
+  </svg><div class="tip" hidden></div></div>`;
+}
+function flagChip(flag) {
+  if (flag === 'High') return `<span class="chip bad">High</span>`;
+  if (flag === 'Low') return `<span class="chip bad">Low</span>`;
+  if (flag === 'Normal') return `<span class="chip good">Normal</span>`;
+  return '';
+}
+function labsSection(opts = {}) {
+  const all = labs(); const groups = {};
+  for (const e of all) {
+    if (opts.only && !opts.only.includes(e.marker)) continue;
+    if (opts.cats) { const cat = LAB_BY_ID(e.marker); const grp = cat ? cat.group : 'Other'; if (!opts.cats.includes(grp)) continue; }
+    (groups[e.marker] = groups[e.marker] || []).push(e);
+  }
+  const keys = Object.keys(groups);
+  let h = `<div class="section-head"><h2>${opts.title || 'Labs'}</h2>${opts.hideAdd ? '' : `<div class="row"><button class="btn sm primary" data-action="lab" ${opts.preset ? `data-preset="${opts.preset}"` : ''}>+ Lab result</button></div>`}</div>`;
+  if (!keys.length) { h += `<div class="empty small">No lab results yet. Log estradiol, testosterone or anything else you get tested and it charts here.</div>`; return `<section class="sec">${h}</section>`; }
+  h += `<div class="chart-grid">`;
+  for (const k of keys) {
+    const es = groups[k]; const last = es[es.length - 1]; const prev = es.length > 1 ? es[es.length - 2] : null;
+    const delta = prev ? last.value - prev.value : null;
+    const cat = LAB_BY_ID(k);
+    const band = [...es].reverse().find(e => e.refLow != null || e.refHigh != null);
+    const refText = refRangeText(band);
+    h += `<div class="card lab-card" id="lab-card-${k.replace(/[^\w-]/g, '_')}">
+      <div class="lab-head">
+        <div><h3>${esc(last.name)}<small>${esc(last.unit)}</small></h3><div class="small faint">${es.length} result${es.length === 1 ? '' : 's'}${es.length > 1 ? ` · ${fmtDate(P(es[0].at), true)} → ${fmtDate(P(last.at), true)}` : ''}</div></div>
+        <div class="lab-hero"><div class="v">${n(last.value, 1)}<small>${esc(last.unit)}</small></div><div class="lab-meta">${flagChip(labFlag(last))}<span>${fmtDate(P(last.at), true)}</span>${delta != null ? `<span>${delta >= 0 ? '+' : ''}${n(delta, 1)} vs prior</span>` : ''}${refText ? `<span>ref ${esc(refText)}</span>` : ''}</div></div>
+      </div>
+      ${es.length > 1 ? labsChart(k, es, band ? { refLow: band.refLow ?? null, refHigh: band.refHigh ?? null } : null) : `<div class="small muted" style="margin-top:8px">One result so far. A second one draws the line.</div>`}
+      ${(MARKER_GENES[k] || []).map(gene => {
+        const gf = genomeData().findings.filter(f => f.gene === gene).sort((a, b) => (b.magnitude || 0) - (a.magnitude || 0))[0];
+        if (!gf) return '';
+        return `<div class="small muted" style="margin-top:8px">Genetic context: <a class="chip plain" href="genome.html?gene=${encodeURIComponent(gene)}">${esc(gene)}</a> — ${esc(gf.summary)}</div>`;
+      }).join('')}
+      ${cat && cat.info ? `<details style="margin-top:8px"><summary>What it means</summary><div class="note-box" style="margin-top:6px">
+          ${last.flag === 'High' ? (cat.info.high ? `<p>${esc(cat.info.high)}</p>` : `<p>${esc(LAB_DEFAULT_INFO)}</p>`)
+          : last.flag === 'Low' ? (cat.info.low ? `<p>${esc(cat.info.low)}</p>` : `<p>${esc(LAB_DEFAULT_INFO)}</p>`)
+          : `${cat.info.high ? `<p>${esc(cat.info.high)}</p>` : ''}${cat.info.low ? `<p>${esc(cat.info.low)}</p>` : ''}`}
+          ${cat.info.related && cat.info.related.length ? `<div class="small muted" style="margin-top:6px">Usually reviewed with: ${cat.info.related.map(rid => { const rc = LAB_BY_ID(rid); return rc ? `<button type="button" class="chip plain" style="cursor:pointer;border:0" data-action="jump-marker" data-id="${rid}" data-name="${esc(rc.name)}">${esc(rc.name)}</button>` : ''; }).join(' ')}</div>` : ''}
+        </div></details>` : ''}
+      <details style="margin-top:8px"><summary>All results (${es.length})</summary><div class="table-wrap" style="margin-top:6px"><table><thead><tr><th>Date</th><th class="num">Value</th><th>Range</th><th>Flag</th><th>Source</th><th>Note</th><th></th></tr></thead><tbody>${es.slice().reverse().map(e => `<tr><td>${fmtDate(P(e.at), true)}</td><td class="num">${n(e.value, 1)} ${esc(e.unit)}</td><td class="muted small">${esc(e.refText || (e.refLow != null && e.refHigh != null ? `${n(e.refLow, 1)}-${n(e.refHigh, 1)}` : '—'))}</td><td>${flagChip(e.flag) || '<span class="muted small">—</span>'}</td><td class="muted small">${esc(e.source || '—')}</td><td class="muted" style="white-space:normal">${esc(e.note || '')}</td><td><button class="btn sm ghost danger" data-action="del-lab" data-id="${e.id}" aria-label="Delete">✕</button></td></tr>`).join('')}</tbody></table></div></details></div>`;
+  }
+  return `<section class="sec">${h}</div></section>`;
+}
+let labsCat = 'All';
+try { labsCat = localStorage.getItem('pt-labs-cat') || 'All'; } catch {}
+function saveLabsCat() { try { localStorage.setItem('pt-labs-cat', labsCat); } catch {} }
+function labsSummary() {
+  const all = labs(); if (!all.length) return null;
+  const lastDate = all[all.length - 1].at;
+  const inDraw = all.filter(e => e.at === lastDate);
+  const flagged = inDraw.filter(e => e.flag === 'High' || e.flag === 'Low').length;
+  const markers = new Set(all.map(e => e.marker)).size;
+  return { lastDate, count: inDraw.length, flagged, markers };
+}
+function labsView() {
+  const s = labsSummary();
+  const strip = s ? `<div class="strip">
+      <div class="tile"><div class="k">Last draw</div><div class="v" style="font-size:18px">${fmtDate(P(s.lastDate), true)}</div></div>
+      <div class="tile"><div class="k">Results in that draw</div><div class="v num">${s.count}</div></div>
+      <div class="tile${s.flagged ? ' bad' : ''}"><div class="k">Flagged</div><div class="v num">${s.flagged}</div></div>
+      <div class="tile"><div class="k">Markers tracked</div><div class="v num">${s.markers}</div></div>
+    </div>` : '';
+  const cats = ['All', ...LAB_GROUPS];
+  const filterRow = `<div class="row" style="margin-bottom:16px;flex-wrap:wrap;gap:6px">${cats.map(c => `<button class="gbtn" style="border-radius:8px;border-left:1px solid var(--border)" data-action="labscat" data-cat="${esc(c)}" aria-selected="${labsCat === c}">${esc(c)}</button>`).join('')}</div>`;
+  const head = `<section class="sec"><div class="section-head"><h2>Labs</h2><div class="row"><button class="btn sm" data-action="import-labs">Import labs</button><button class="btn sm primary" data-action="lab">+ Lab result</button></div></div>${strip}${filterRow}</section>`;
+  const activeCats = labsCat === 'All' ? null : [labsCat];
+  return head + labsSection({ cats: activeCats, title: 'Results by marker', hideAdd: true });
+}
+
+function importLabsData() {
+  openModal(`<h2>Import labs</h2><p class="small muted" style="margin-bottom:10px">Paste a labs export (like <code>data/labs-history.json</code>), or choose the file. Existing lab results with the same id are overwritten; nothing else is touched.</p>
+    <div class="form"><input type="file" id="importLabsFile" accept="application/json"><div class="field"><textarea id="importLabsText" placeholder='{"labs":{…}}'></textarea></div></div>
+    <div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="button" class="btn primary" id="importLabsGo">Import</button></div>`);
+  $('#importLabsFile').addEventListener('change', e => { const f = e.target.files[0]; if (f) f.text().then(t => $('#importLabsText').value = t); });
+  $('#importLabsGo').addEventListener('click', async () => {
+    let j; try { j = JSON.parse($('#importLabsText').value); } catch { toast('That is not valid JSON'); return; }
+    const src = j.labs && typeof j.labs === 'object' ? j.labs : j;
+    const entries = Object.entries(src).filter(([, obj]) => obj && typeof obj === 'object' && obj.marker && obj.value != null && obj.at);
+    if (!entries.length) { toast('No lab results found in that file'); return; }
+    closeModal();
+    const count = await store.putMany('labs', Object.fromEntries(entries));
+    toast(`Imported ${count} lab result${count === 1 ? '' : 's'}`);
+  });
+}
+
+/* ---------- modals ---------- */
+function openModal(html) { $('#modal').innerHTML = html; $('#modalBg').classList.add('open'); const f = $('#modal input, #modal select'); f && f.focus(); }
+function closeModal() { $('#modalBg').classList.remove('open'); $('#modal').innerHTML = ''; }
+let modalDownOnBackdrop = false;
+$('#modalBg').addEventListener('pointerdown', e => { modalDownOnBackdrop = e.target === e.currentTarget; });
+$('#modalBg').addEventListener('click', e => { if (e.target === e.currentTarget && modalDownOnBackdrop) closeModal(); modalDownOnBackdrop = false; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* ---------- chart hover ---------- */
+document.addEventListener('pointermove', e => {
+  const c = e.target.closest('.chart'); if (!c) return;
+  const d = chartData[c.dataset.chart]; if (!d) return;
+  const svg = c.querySelector('svg'); const r = svg.getBoundingClientRect(); const sx = (e.clientX - r.left) / r.width * d.W;
+  const t = d.x0 + (Math.min(Math.max(sx, d.L), d.W - d.L - d.R + d.L) - d.L) / (d.W - d.L - d.R) * (d.x1 - d.x0);
+  if (!Number.isFinite(t)) return;
+  let best = d.pts[0]; for (const q of d.pts) if (Math.abs(q.t - t) < Math.abs(best.t - t)) best = q;
+  const xh = svg.querySelector('.xh'), xd = svg.querySelector('.xd'); const px = d.x(best.t), py = d.y(best.v);
+  xh.setAttribute('x1', px); xh.setAttribute('x2', px); xh.setAttribute('opacity', '.35'); xd.setAttribute('cx', px); xd.setAttribute('cy', py); xd.setAttribute('opacity', '1');
+  const tip = c.querySelector('.tip'); tip.hidden = false; tip.textContent = ''; const b = document.createElement('b'); b.textContent = d.fmt(best.v); tip.appendChild(b); tip.appendChild(document.createTextNode(' · ' + new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', ...(d.snap ? {} : { hour: 'numeric' }) }).format(new Date(best.t)) + (d.extra ? d.extra(best) : '') + (best.note ? ' · ' + best.note : '')));
+  const lx = px / d.W * r.width; tip.style.left = Math.min(Math.max(lx, 60), r.width - 60) + 'px';
+});
+document.addEventListener('pointerleave', e => { const c = e.target.closest && e.target.closest('.chart'); if (!c) return; c.querySelectorAll('.xh,.xd').forEach(el => el.setAttribute('opacity', '0')); const tip = c.querySelector('.tip'); if (tip) tip.hidden = true; }, true);
+
+function render() {
+  if (!store.ready) { $('#labs').innerHTML = '<div class="empty">Loading your labs…</div>'; return; }
+  $('#labs').innerHTML = labsView();
+  applyDeepLink();
+}
+
+// ?marker=ID deep link from Genome's "Markers to watch" — scroll to the
+// card if it has entries, else open the add-result form preset to it.
+let deepLinkApplied = false;
+function applyDeepLink() {
+  if (deepLinkApplied) return;
+  const params = new URLSearchParams(location.search);
+  const marker = params.get('marker');
+  if (!marker) return;
+  deepLinkApplied = true;
+  const has = labs().some(e => e.marker === marker);
+  if (has) {
+    const el = document.getElementById('lab-card-' + marker.replace(/[^\w-]/g, '_'));
+    if (el) { el.classList.add('hit'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => el.classList.remove('hit'), 2000); }
+  } else {
+    labForm(marker);
+  }
+}
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-action]'); if (!b) return;
+  const a = b.dataset.action, id = b.dataset.id;
+  switch (a) {
+    case 'close': closeModal(); break;
+    case 'lab': labForm(b.dataset.preset); break;
+    case 'import-labs': importLabsData(); break;
+    case 'del-lab': confirmDel(id); break;
+    case 'labscat': labsCat = b.dataset.cat; saveLabsCat(); $('#labs').innerHTML = labsView(); break;
+    case 'jump-marker': {
+      const target = document.getElementById('lab-card-' + b.dataset.id);
+      if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      else toast(`No ${b.dataset.name || b.dataset.id} results logged yet`);
+      break;
+    }
+  }
+});
+function confirmDel(id) {
+  openModal(`<h2>Delete this lab result?</h2><div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="button" class="btn danger" id="delGo">Delete</button></div>`);
+  $('#delGo').addEventListener('click', async () => { closeModal(); await store.del('labs', id); });
+}
+
+render();
+store.init();
+})();
+</script>

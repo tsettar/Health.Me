@@ -237,7 +237,7 @@
   .gauge svg { width:100%; height:auto; display:block; }
 
   /* chips */
-  .chip { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:600; line-height:18px; border:1px solid transparent; }
+  .chip { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:600; line-height:18px; border:1px solid transparent; text-decoration:none; }
   .chip.accent { background:var(--accent-soft); color:var(--accent); }
   .chip.good { background:var(--good-soft); color:var(--good); }
   .chip.warn { background:var(--warn-soft); color:var(--warn); }
@@ -245,7 +245,7 @@
   .chip.plain { background:var(--surface-2); color:var(--muted); }
 
   /* buttons */
-  .btn { appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:var(--r-md); padding:9px 14px; font-weight:600; cursor:pointer; min-height:40px; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+  .btn { appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:var(--r-md); padding:9px 14px; font-weight:600; cursor:pointer; min-height:40px; display:inline-flex; align-items:center; justify-content:center; gap:6px; text-decoration:none; }
   .btn:hover { background:var(--surface-2); }
   .btn.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
   .btn.primary:hover { filter:brightness(1.08); }
@@ -373,6 +373,8 @@
       </div>
     </div>
     <div class="topbar-right">
+      <a class="btn sm ghost" href="bloodwork.html">Bloodwork →</a>
+      <a class="btn sm ghost" href="genome.html">Genome →</a>
       <span class="storage" id="storageBadge"><i></i><span>Loading</span></span>
       <button class="btn sm ghost" data-action="settings" aria-label="Settings">⚙</button>
     </div>
@@ -381,7 +383,6 @@
   <nav class="jump" role="tablist">
     <div class="tabs" id="tabs"></div>
     <span class="spacer"></span>
-    <button class="btn sm" data-action="lab">+ Lab</button>
     <button class="btn sm primary" data-action="log">+ Log a dose</button>
   </nav>
 
@@ -392,19 +393,10 @@
   <div class="view" id="view-program">
     <section class="sec" id="program"></section>
   </div>
-  <div class="view" id="view-labs">
-    <div id="labs"></div>
-  </div>
-  <div class="view" id="view-genome">
-    <div id="genome"></div>
-  </div>
   <div class="view" id="view-plan">
     <section class="sec" id="graphs"></section>
     <section class="sec" id="log"></section>
     <div id="orphans"></div>
-  </div>
-  <div class="view" id="view-admin">
-    <div id="admin"></div>
   </div>
 </div>
 
@@ -450,12 +442,9 @@ function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.ad
 const LS_KEY = 'peptide-tracker-v1';
 const COLLECTIONS = ['programs', 'vials', 'logs', 'settings', 'labs', 'genome'];
 const DEFAULT_SETTINGS = { syringeUnits: 100, discardDays: 28, sites: ['L abdomen','R abdomen','L thigh','R thigh'] };
-// genome is a single doc, id 'main' — same convention as settings.main. Each
-// user (in 'server' mode) or device (in 'local'/'file' mode) imports their
-// own pre-processed {summary, findings} JSON via importGenomeData(); this
-// used to be a hardcoded const in the page itself (baked-in, single-user,
-// and — since this page is also published as a public Claude Artifact —
-// unintentionally public). Empty findings/no summary means "not imported yet".
+// genome is a single doc, id 'main' — same convention as settings.main.
+// Genome browsing/import lives entirely in genome.html now; Stack Tracker
+// only reads this for the read-only "Genetic context" line in labsSection().
 function genomeData() { return (store.data.genome && store.data.genome.main) || { summary: null, findings: [] }; }
 
 /* ---------- local file (File System Access API) ---------- */
@@ -1101,127 +1090,22 @@ function labsSection(opts = {}) {
       ${(MARKER_GENES[k] || []).map(gene => {
         const gf = genomeData().findings.filter(f => f.gene === gene).sort((a, b) => (b.magnitude || 0) - (a.magnitude || 0))[0];
         if (!gf) return '';
-        return `<div class="small muted" style="margin-top:8px">Genetic context: <button type="button" class="chip plain" style="cursor:pointer;border:0" data-action="jump-genome" data-gene="${esc(gene)}">${esc(gene)}</button> — ${esc(gf.summary)}</div>`;
+        return `<div class="small muted" style="margin-top:8px">Genetic context: <a class="chip plain" href="genome.html?gene=${encodeURIComponent(gene)}">${esc(gene)}</a> — ${esc(gf.summary)}</div>`;
       }).join('')}
       ${cat && cat.info ? `<details style="margin-top:8px"><summary>What it means</summary><div class="note-box" style="margin-top:6px">
           ${last.flag === 'High' ? (cat.info.high ? `<p>${esc(cat.info.high)}</p>` : `<p>${esc(LAB_DEFAULT_INFO)}</p>`)
           : last.flag === 'Low' ? (cat.info.low ? `<p>${esc(cat.info.low)}</p>` : `<p>${esc(LAB_DEFAULT_INFO)}</p>`)
           : `${cat.info.high ? `<p>${esc(cat.info.high)}</p>` : ''}${cat.info.low ? `<p>${esc(cat.info.low)}</p>` : ''}`}
-          ${cat.info.related && cat.info.related.length ? `<div class="small muted" style="margin-top:6px">Usually reviewed with: ${cat.info.related.map(rid => { const rc = LAB_BY_ID(rid); return rc ? `<button type="button" class="chip plain" style="cursor:pointer;border:0" data-action="jump-marker" data-id="${rid}" data-name="${esc(rc.name)}">${esc(rc.name)}</button>` : ''; }).join(' ')}</div>` : ''}
+          ${cat.info.related && cat.info.related.length ? `<div class="small muted" style="margin-top:6px">Usually reviewed with: ${cat.info.related.map(rid => { const rc = LAB_BY_ID(rid); return rc ? `<a class="chip plain" href="bloodwork.html?marker=${encodeURIComponent(rid)}">${esc(rc.name)}</a>` : ''; }).join(' ')}</div>` : ''}
         </div></details>` : ''}
       <details style="margin-top:8px"><summary>All results (${es.length})</summary><div class="table-wrap" style="margin-top:6px"><table><thead><tr><th>Date</th><th class="num">Value</th><th>Range</th><th>Flag</th><th>Source</th><th>Note</th><th></th></tr></thead><tbody>${es.slice().reverse().map(e => `<tr><td>${fmtDate(P(e.at), true)}</td><td class="num">${n(e.value, 1)} ${esc(e.unit)}</td><td class="muted small">${esc(e.refText || (e.refLow != null && e.refHigh != null ? `${n(e.refLow, 1)}-${n(e.refHigh, 1)}` : '—'))}</td><td>${flagChip(e.flag) || '<span class="muted small">—</span>'}</td><td class="muted small">${esc(e.source || '—')}</td><td class="muted" style="white-space:normal">${esc(e.note || '')}</td><td><button class="btn sm ghost danger" data-action="del-lab" data-id="${e.id}" aria-label="Delete">✕</button></td></tr>`).join('')}</tbody></table></div></details></div>`;
   }
   return `<section class="sec">${h}</div></section>`;
 }
-let labsCat = 'All';
-try { labsCat = localStorage.getItem('pt-labs-cat') || 'All'; } catch {}
-function saveLabsCat() { try { localStorage.setItem('pt-labs-cat', labsCat); } catch {} }
-function labsSummary() {
-  const all = labs(); if (!all.length) return null;
-  const lastDate = all[all.length - 1].at;
-  const inDraw = all.filter(e => e.at === lastDate);
-  const flagged = inDraw.filter(e => e.flag === 'High' || e.flag === 'Low').length;
-  const markers = new Set(all.map(e => e.marker)).size;
-  return { lastDate, count: inDraw.length, flagged, markers };
-}
-function labsView() {
-  const s = labsSummary();
-  const strip = s ? `<div class="strip">
-      <div class="tile"><div class="k">Last draw</div><div class="v" style="font-size:18px">${fmtDate(P(s.lastDate), true)}</div></div>
-      <div class="tile"><div class="k">Results in that draw</div><div class="v num">${s.count}</div></div>
-      <div class="tile${s.flagged ? ' bad' : ''}"><div class="k">Flagged</div><div class="v num">${s.flagged}</div></div>
-      <div class="tile"><div class="k">Markers tracked</div><div class="v num">${s.markers}</div></div>
-    </div>` : '';
-  const cats = ['All', ...LAB_GROUPS];
-  const filterRow = `<div class="row" style="margin-bottom:16px;flex-wrap:wrap;gap:6px">${cats.map(c => `<button class="gbtn" style="border-radius:8px;border-left:1px solid var(--border)" data-action="labscat" data-cat="${esc(c)}" aria-selected="${labsCat === c}">${esc(c)}</button>`).join('')}</div>`;
-  const head = `<section class="sec"><div class="section-head"><h2>Labs</h2><div class="row"><button class="btn sm" data-action="import-labs">Import labs</button><button class="btn sm primary" data-action="lab">+ Lab result</button></div></div>${strip}${filterRow}</section>`;
-  const activeCats = labsCat === 'All' ? null : [labsCat];
-  return head + labsSection({ cats: activeCats, title: 'Results by marker', hideAdd: true });
-}
-
-/* ---------- genome (read-only) ---------- */
-let genomeState = { q: '', cats: [], sort: 'magnitude' };
-try { Object.assign(genomeState, JSON.parse(localStorage.getItem('pt-genome') || '{}')); } catch {}
-function saveGenomeState() { try { localStorage.setItem('pt-genome', JSON.stringify(genomeState)); } catch {} }
-function genomeCategoryCounts() {
-  const counts = {};
-  for (const f of genomeData().findings) counts[f.category] = (counts[f.category] || 0) + 1;
-  return counts;
-}
-function filteredFindings() {
-  const q = (genomeState.q || '').trim().toLowerCase();
-  let list = genomeData().findings;
-  if (genomeState.cats && genomeState.cats.length) list = list.filter(f => genomeState.cats.includes(f.category));
-  if (q) list = list.filter(f => f.name.toLowerCase().includes(q) || (f.gene || '').toLowerCase().includes(q) || (f.summary || '').toLowerCase().includes(q));
-  const arr = list.slice();
-  if (genomeState.sort === 'category') arr.sort((a, b) => a.category.localeCompare(b.category) || (b.magnitude || 0) - (a.magnitude || 0));
-  else if (genomeState.sort === 'gene') arr.sort((a, b) => (a.gene || '￿').localeCompare(b.gene || '￿') || (b.magnitude || 0) - (a.magnitude || 0));
-  else arr.sort((a, b) => (b.magnitude || 0) - (a.magnitude || 0));
-  return arr;
-}
-function findingMarkersHtml(f) {
-  const ids = f.gene && GENE_MARKERS[f.gene];
-  if (!ids) return '';
-  return `<div class="small muted" style="margin-top:8px">Markers to watch: ${ids.map(mid => {
-    const cat = LAB_BY_ID(mid); if (!cat) return '';
-    const es = labs().filter(e => e.marker === mid);
-    if (!es.length) return `<button type="button" class="chip plain" style="cursor:pointer;border:0" data-action="lab" data-preset="${mid}">${esc(cat.name)} — not tracked yet</button>`;
-    const last = es[es.length - 1];
-    return `<button type="button" class="chip plain" style="cursor:pointer;border:0" data-action="jump-marker" data-id="${mid}" data-name="${esc(cat.name)}">${esc(cat.name)} ${n(last.value, 1)}${last.unit ? ' ' + esc(last.unit) : ''}</button> ${flagChip(last.flag)}`;
-  }).join(' ')}</div>`;
-}
-function findingCard(f) {
-  const m = f.magnitude || 0;
-  const mx = Math.max(f.maxMagnitude || 0, m, 1);
-  const cls = m >= 3 ? 'bad' : m >= 2 ? 'warn' : 'muted';
-  const pct = Math.max(3, Math.min(100, m / mx * 100));
-  const miscall = /^possible miscall/i.test(f.summary || '');
-  return `<div class="card" style="margin-bottom:10px">
-    <div class="row" style="margin-bottom:6px;flex-wrap:wrap">
-      <span class="num" style="font-weight:600">${esc(f.name)}</span>
-      ${f.gene ? `<span class="chip accent">${esc(f.gene)}</span>` : ''}
-      <span class="chip plain">${esc(f.category)}</span>
-      ${miscall ? `<span class="chip plain">possible miscall</span>` : ''}
-      <span class="spacer"></span>
-      ${f.publications != null ? `<span class="small muted">${f.publications} publication${f.publications === 1 ? '' : 's'}</span>` : ''}
-    </div>
-    <div class="row" style="gap:8px;margin-bottom:6px">
-      <div class="bar" style="width:140px"><i style="width:${pct}%;background:var(--${cls})"></i></div>
-      <span class="small muted num">${f.magnitude != null ? n(f.magnitude, 1) : '—'}${f.maxMagnitude != null ? ' / ' + n(f.maxMagnitude, 1) : ''}</span>
-    </div>
-    <div>${esc(f.summary || '')}</div>
-    ${f.chrom ? `<div class="small faint" style="margin-top:6px">chr${esc(f.chrom)}:${f.pos ?? '—'}</div>` : ''}
-    ${findingMarkersHtml(f)}
-  </div>`;
-}
-function genomeView() {
-  const g = genomeData();
-  const importBtn = `<button class="btn sm" data-action="import-genome">${g.summary ? 'Re-import' : 'Import genome data'}</button>`;
-  if (!g.summary) {
-    return `<section class="sec"><div class="section-head"><h2>Genome</h2>${importBtn}</div>
-      <div class="empty small">No genome data imported yet. Import a processed findings file (rsid/gene/risk summaries — the same shape as a Promethease-style export) to see it here. Raw 23andMe/AncestryDNA SNP files aren't parsed by this app; import already-curated findings.</div>
-    </section>`;
-  }
-  const s = g.summary;
-  const strip = `<div class="strip">
-      <div class="tile"><div class="k">SNPs called</div><div class="v num">${(s.total || 0).toLocaleString()}</div></div>
-      <div class="tile"><div class="k">Call rate</div><div class="v num">${s.callRate != null ? (s.callRate * 100).toFixed(1) + '%' : '—'}</div></div>
-      <div class="tile"><div class="k">Findings</div><div class="v num">${g.findings.length}</div></div>
-      <div class="tile"><div class="k">Export date</div><div class="v" style="font-size:18px">${s.exportDate ? fmtDate(P(s.exportDate), true) : '—'}</div></div>
-    </div>`;
-  const counts = genomeCategoryCounts();
-  const cats = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b));
-  const catChips = `<div class="checks" style="margin-bottom:10px">${cats.map(c => `<label><input type="checkbox" data-gcat="${esc(c)}" ${genomeState.cats.includes(c) ? 'checked' : ''}> ${esc(c)} <span class="faint">${counts[c]}</span></label>`).join('')}</div>`;
-  const sorts = [['magnitude', 'Magnitude'], ['category', 'Category'], ['gene', 'Gene']];
-  const sortRow = `<div class="row" style="margin-bottom:12px;gap:0"><span class="small muted" style="margin-right:8px">Sort</span>${sorts.map(([k, label]) => `<button class="gbtn" data-action="gsort" data-sort="${k}" aria-selected="${genomeState.sort === k}">${label}</button>`).join('')}</div>`;
-  const searchRow = `<div class="field" style="margin-bottom:10px;max-width:360px"><input id="genomeSearch" type="text" placeholder="Search rsid, gene, or summary…" value="${esc(genomeState.q || '')}"></div>`;
-  const list = filteredFindings();
-  const head = `<section class="sec"><div class="section-head"><h2>Genome</h2><div class="row">${importBtn}<span class="small muted">${list.length} of ${g.findings.length}</span></div></div>${strip}${searchRow}${catChips}${sortRow}</section>`;
-  const body = list.length
-    ? `<section class="sec">${list.map(findingCard).join('')}</section>`
-    : `<section class="sec"><div class="empty small">No findings match those filters.</div></section>`;
-  return head + body;
-}
+/* ---------- genome (read-only cross-link data; browsing lives in genome.html) ---------- */
+// Full genome browsing (search/sort/import) lives in genome.html now — Stack
+// Tracker only reads genomeData() for the "Genetic context" line inside
+// labsSection(), see the mini-block on the program screen.
 
 /* ---------- chart hover ---------- */
 document.addEventListener('pointermove', e => {
@@ -1350,8 +1234,6 @@ function renderGraphs() {
 document.addEventListener('change', async e => {
   const sel = e.target.closest('[data-orphan-assign]');
   if (sel) { const v = store.data.vials[sel.dataset.orphanAssign]; if (v && sel.value) { await store.put('vials', v.id, { ...v, programId: sel.value }); toast('Vial moved'); } return; }
-  const gc = e.target.closest('[data-gcat]');
-  if (gc) { const c = gc.dataset.gcat; if (gc.checked) { if (!genomeState.cats.includes(c)) genomeState.cats.push(c); } else genomeState.cats = genomeState.cats.filter(x => x !== c); saveGenomeState(); $('#genome').innerHTML = genomeView(); return; }
   const cb = e.target.closest('[data-gkey]'); if (!cb) return;
   const k = cb.dataset.gkey; if (cb.checked) { if (!graphState.keys.includes(k)) graphState.keys.push(k); } else graphState.keys = graphState.keys.filter(x => x !== k);
   saveGraphState(); renderGraphs();
@@ -1360,14 +1242,6 @@ document.addEventListener('click', e => {
   const r = e.target.closest('[data-grange]'); if (r) { graphState.range = +r.dataset.grange; saveGraphState(); renderGraphs(); return; }
   const m = e.target.closest('[data-gmode]'); if (m) { graphState.mode = m.dataset.gmode; saveGraphState(); renderGraphs(); }
 });
-document.addEventListener('input', e => {
-  const el = e.target.closest('#genomeSearch'); if (!el) return;
-  genomeState.q = el.value; saveGenomeState();
-  const pos = el.selectionStart;
-  $('#genome').innerHTML = genomeView();
-  const ne = $('#genomeSearch'); if (ne) { ne.focus(); ne.setSelectionRange(pos, pos); }
-});
-
 /* ---------- syringe gauge ---------- */
 const ESTERS = [
   { key:'prop', name:'Testosterone propionate', hl:0.8, abs:0.7, conc:100, note:'Every day or every other day' },
@@ -1570,18 +1444,14 @@ function renderTabs() {
     const missed = p.status === 'active' && missedDates(p).length > 0;
     h += `<button class="tab${p.status === 'done' ? ' done-tab' : ''}" role="tab" data-view="program" data-id="${p.id}">${esc(p.name)}${pending ? '<span class="mark due" title="Due today"></span>' : missed ? '<span class="mark missed" title="Missed doses"></span>' : ''}</button>`;
   }
-  h += `<button class="tab" role="tab" data-view="labs">Labs</button>`;
-  h += `<button class="tab" role="tab" data-view="genome">Genome</button>`;
   h += `<button class="tab" role="tab" data-view="plan">Logs</button>`;
-  if (store.mode === 'server' && store.me && store.me.is_admin) h += `<button class="tab" role="tab" data-view="admin">Admin</button>`;
   $('#tabs').innerHTML = h; syncTabs();
 }
 function render() {
   showView(currentView);
   $('#todayLabel').textContent = new Intl.DateTimeFormat('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' }).format(new Date());
   if (!store.ready) { $('#today').innerHTML = '<div class="empty">Loading your programs…</div>'; return; }
-  renderTabs(); renderToday(); renderPlanSummary(); renderProgramDetail(); renderVials(); renderLog(); $('#labs').innerHTML = labsView(); $('#genome').innerHTML = genomeView(); renderGraphs(); renderOrphans();
-  $('#admin').innerHTML = adminView();
+  renderTabs(); renderToday(); renderPlanSummary(); renderProgramDetail(); renderVials(); renderLog(); renderGraphs(); renderOrphans();
 }
 
 function statusChip(p) {
@@ -2427,106 +2297,9 @@ function importData() {
   });
 }
 
-function importLabsData() {
-  openModal(`<h2>Import labs</h2><p class="small muted" style="margin-bottom:10px">Paste a labs export (like <code>data/labs-history.json</code>), or choose the file. Existing lab results with the same id are overwritten; nothing else is touched.</p>
-    <div class="form"><input type="file" id="importLabsFile" accept="application/json"><div class="field"><textarea id="importLabsText" placeholder='{"labs":{…}}'></textarea></div></div>
-    <div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="button" class="btn primary" id="importLabsGo">Import</button></div>`);
-  $('#importLabsFile').addEventListener('change', e => { const f = e.target.files[0]; if (f) f.text().then(t => $('#importLabsText').value = t); });
-  $('#importLabsGo').addEventListener('click', async () => {
-    let j; try { j = JSON.parse($('#importLabsText').value); } catch { toast('That is not valid JSON'); return; }
-    const src = j.labs && typeof j.labs === 'object' ? j.labs : j;
-    const entries = Object.entries(src).filter(([, obj]) => obj && typeof obj === 'object' && obj.marker && obj.value != null && obj.at);
-    if (!entries.length) { toast('No lab results found in that file'); return; }
-    closeModal();
-    const count = await store.putMany('labs', Object.fromEntries(entries));
-    toast(`Imported ${count} lab result${count === 1 ? '' : 's'}`);
-  });
-}
-
-// genome is a flat { summary, findings } blob (like data/genome-findings.json),
-// not an id-keyed map — so it needs its own modal ending in a single
-// store.put('genome', 'main', ...) rather than the generic COLLECTIONS/
-// putMany loop importData() uses.
-function importGenomeData() {
-  openModal(`<h2>Import genome data</h2><p class="small muted" style="margin-bottom:10px">Paste a processed findings export (like <code>data/genome-findings.json</code> — <code>{"summary":{…},"findings":[…]}</code>), or choose the file. This replaces your current genome data.</p>
-    <div class="form"><input type="file" id="importGenomeFile" accept="application/json"><div class="field"><textarea id="importGenomeText" placeholder='{"summary":{…},"findings":[…]}'></textarea></div></div>
-    <div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="button" class="btn primary" id="importGenomeGo">Import</button></div>`);
-  $('#importGenomeFile').addEventListener('change', e => { const f = e.target.files[0]; if (f) f.text().then(t => $('#importGenomeText').value = t); });
-  $('#importGenomeGo').addEventListener('click', async () => {
-    let j; try { j = JSON.parse($('#importGenomeText').value); } catch { toast('That is not valid JSON'); return; }
-    if (!j || typeof j !== 'object' || !Array.isArray(j.findings)) { toast('Expected an object with a "findings" array'); return; }
-    closeModal();
-    await store.put('genome', 'main', { summary: j.summary || null, findings: j.findings });
-    toast(`Imported ${j.findings.length} genome finding${j.findings.length === 1 ? '' : 's'}`);
-  });
-}
-
-/* ---------- admin (server mode, is_admin only) ---------- */
-// Not part of `store` — this is account/policy management, not app data, and
-// talks to /api/admin/* rather than the /api/data/* the store methods use.
-let adminUsers = null; // null = not loaded yet
-async function loadAdminUsers() {
-  if (!(store.mode === 'server' && store.me && store.me.is_admin)) return;
-  try {
-    const res = await fetch('/api/admin/users');
-    if (res.ok) { adminUsers = await res.json(); $('#admin').innerHTML = adminView(); }
-  } catch {}
-}
-async function adminAction(method, path, body) {
-  try {
-    const res = await fetch(path, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) { toast(data.error || 'Action failed'); return false; }
-    return true;
-  } catch { toast('Action failed — check your connection'); return false; }
-}
-function adminView() {
-  if (!(store.mode === 'server' && store.me && store.me.is_admin)) return '';
-  const rows = adminUsers === null
-    ? `<tr><td colspan="5" class="muted small">Loading…</td></tr>`
-    : !adminUsers.length
-      ? `<tr><td colspan="5" class="muted small">No users yet.</td></tr>`
-      : adminUsers.map(u => `<tr>
-          <td class="num">${esc(u.email)}${u.email === store.me.email ? ' <span class="chip plain">you</span>' : ''}</td>
-          <td>${u.is_admin ? '<span class="chip accent">Admin</span>' : ''}</td>
-          <td>${u.is_disabled ? '<span class="chip bad">Disabled</span>' : '<span class="chip good">Active</span>'}</td>
-          <td class="muted small">${u.program_count || 0} program${u.program_count === 1 ? '' : 's'}</td>
-          <td class="row" style="gap:6px;justify-content:flex-end">${u.email === store.me.email ? '' : `
-              <button class="btn sm ghost" data-action="admin-toggle-admin" data-email="${esc(u.email)}" data-is-admin="${u.is_admin ? '0' : '1'}">${u.is_admin ? 'Remove admin' : 'Make admin'}</button>
-              ${u.is_disabled
-                ? `<button class="btn sm" data-action="admin-enable" data-email="${esc(u.email)}">Enable</button>`
-                : `<button class="btn sm ghost" data-action="admin-disable" data-email="${esc(u.email)}">Disable</button>`}
-              <button class="btn sm ghost danger" data-action="admin-delete" data-email="${esc(u.email)}">Delete</button>
-            `}</td>
-        </tr>`).join('');
-  return `<section class="sec">
-    <div class="section-head"><h2>Admin</h2><button class="btn sm primary" data-action="admin-invite">Invite user…</button></div>
-    <div class="table-wrap"><table><thead><tr><th>Email</th><th>Role</th><th>Status</th><th>Data</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
-  </section>`;
-}
-function inviteUserForm() {
-  openModal(`<h2>Invite user</h2><p class="small muted" style="margin-bottom:10px">Adds their email to the Cloudflare Access policy so they can reach health.me, and pre-creates their account with its own private data.</p>
-    <div class="form"><div class="field"><label for="inviteEmail">Email</label><input type="email" id="inviteEmail" placeholder="name@example.com" required></div></div>
-    <div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="button" class="btn primary" id="inviteGo">Invite</button></div>`);
-  $('#inviteGo').addEventListener('click', async () => {
-    const email = $('#inviteEmail').value.trim();
-    if (!email || !email.includes('@')) { toast('Enter a valid email'); return; }
-    const ok = await adminAction('POST', '/api/admin/users/invite', { email });
-    if (ok) { closeModal(); toast(`Invited ${email}`); await loadAdminUsers(); }
-  });
-}
-function deleteUserConfirm(email) {
-  openModal(`<h2>Delete ${esc(email)}?</h2><p>This permanently deletes their account and every program, vial, dose, lab result and genome finding they own, and removes their access. There is no undo.</p>
-    <div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="button" class="btn danger" id="deleteUserGo">Delete permanently</button></div>`);
-  $('#deleteUserGo').addEventListener('click', async () => {
-    const ok = await adminAction('DELETE', `/api/admin/users/${encodeURIComponent(email)}`);
-    if (ok) { closeModal(); toast(`Deleted ${email}`); await loadAdminUsers(); }
-  });
-}
-
 /* ---------- events ---------- */
 document.addEventListener('click', async e => {
-  const tab = e.target.closest('.tab[data-view]'); if (tab) { showView(tab.dataset.view, tab.dataset.id); if (tab.dataset.view === 'program') renderProgramDetail(); if (tab.dataset.view === 'admin') loadAdminUsers(); window.scrollTo(0, 0); return; }
+  const tab = e.target.closest('.tab[data-view]'); if (tab) { showView(tab.dataset.view, tab.dataset.id); if (tab.dataset.view === 'program') renderProgramDetail(); window.scrollTo(0, 0); return; }
   const b = e.target.closest('[data-action]'); if (!b) return;
   const a = b.dataset.action, id = b.dataset.id;
   const pm = store.data.programs, vm = store.data.vials;
@@ -2538,30 +2311,7 @@ document.addEventListener('click', async e => {
     case 'calc': calcModal(id); break;
     case 'lab': labForm(b.dataset.preset); break;
     case 'toggle-today-done': toggleDoneToday(); break;
-    case 'import-labs': importLabsData(); break;
-    case 'import-genome': importGenomeData(); break;
-    case 'admin-invite': inviteUserForm(); break;
-    case 'admin-disable': if (await adminAction('POST', `/api/admin/users/${encodeURIComponent(b.dataset.email)}/disable`)) { toast(`Disabled ${b.dataset.email}`); await loadAdminUsers(); } break;
-    case 'admin-enable': if (await adminAction('POST', `/api/admin/users/${encodeURIComponent(b.dataset.email)}/enable`)) { toast(`Enabled ${b.dataset.email}`); await loadAdminUsers(); } break;
-    case 'admin-toggle-admin': if (await adminAction('POST', `/api/admin/users/${encodeURIComponent(b.dataset.email)}/admin`, { is_admin: b.dataset.isAdmin === '1' })) { await loadAdminUsers(); } break;
-    case 'admin-delete': deleteUserConfirm(b.dataset.email); break;
     case 'del-lab': confirmBox('Delete this lab result?', () => store.del('labs', id)); break;
-    case 'labscat': labsCat = b.dataset.cat; saveLabsCat(); $('#labs').innerHTML = labsView(); break;
-    case 'jump-marker': {
-      const card = document.getElementById('lab-card-' + b.dataset.id);
-      if (currentView !== 'labs') { showView('labs'); }
-      if (labsCat !== 'All' && !card) { labsCat = 'All'; saveLabsCat(); $('#labs').innerHTML = labsView(); }
-      const target = document.getElementById('lab-card-' + b.dataset.id);
-      if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-      else toast(`No ${b.dataset.name || b.dataset.id} results logged yet`);
-      break;
-    }
-    case 'gsort': genomeState.sort = b.dataset.sort; saveGenomeState(); $('#genome').innerHTML = genomeView(); break;
-    case 'jump-genome': {
-      genomeState.q = b.dataset.gene || ''; genomeState.cats = []; saveGenomeState();
-      showView('genome'); $('#genome').innerHTML = genomeView(); window.scrollTo(0, 0);
-      break;
-    }
     case 'add-program': programForm({}); break;
     case 'edit-program': programForm(pm[id] || {}); break;
     case 'activate': await store.put('programs', id, { ...pm[id], status:'active', startDate: pm[id].startDate || ISO(new Date()) }); toast('Activated'); break;

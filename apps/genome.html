@@ -1,0 +1,566 @@
+<meta charset="utf-8">
+<title>Genome</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#F3F5F4; --surface:#FFFFFF; --surface-2:#E9EEEC; --border:#D3DBD8; --divider:#E3E9E7;
+    --ink:#16201D; --muted:#5C6966; --faint:#8C9895;
+    --accent:#3D4FC4; --accent-ink:#FFFFFF; --accent-soft:#E4E7FA; --accent-line:#B7BEEF;
+    --good:#1F7A4D; --good-soft:#DDF1E6; --warn:#9A6400; --warn-soft:#FFF3CF; --bad:#BE3B3B; --bad-soft:#F9E0E0;
+    --shadow:0 1px 2px rgba(22,32,29,.06), 0 8px 24px rgba(22,32,29,.06);
+    --font-display:'Manrope', 'Segoe UI', system-ui, sans-serif;
+    --font-body:'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+    --font-mono:'IBM Plex Mono', ui-monospace, Consolas, monospace;
+    --r-sm:6px; --r-md:10px; --r-lg:14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#0F1513; --surface:#171E1C; --surface-2:#1F2826; --border:#2C3735; --divider:#243030;
+      --ink:#E6ECE9; --muted:#A2AEAA; --faint:#6F7B78;
+      --accent:#8E9CFF; --accent-ink:#0F1513; --accent-soft:#252B4D; --accent-line:#3F4A8F;
+      --good:#6CCB95; --good-soft:#173325; --warn:#F0B35A; --warn-soft:#3A2F14; --bad:#F08080; --bad-soft:#3D1A1A;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0F1513; --surface:#171E1C; --surface-2:#1F2826; --border:#2C3735; --divider:#243030;
+    --ink:#E6ECE9; --muted:#A2AEAA; --faint:#6F7B78;
+    --accent:#8E9CFF; --accent-ink:#0F1513; --accent-soft:#252B4D; --accent-line:#3F4A8F;
+    --good:#6CCB95; --good-soft:#173325; --warn:#F0B35A; --warn-soft:#3A2F14; --bad:#F08080; --bad-soft:#3D1A1A;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 var(--font-body); -webkit-text-size-adjust:100%; }
+  button, input, select, textarea { font:inherit; color:inherit; }
+  h1,h2,h3,h4,p { margin:0; }
+  h1,h2,h3 { font-family:var(--font-display); text-wrap:balance; }
+  a { color:var(--accent); }
+  .num { font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+  .app { max-width:1100px; margin:0 auto; padding:16px 24px 64px; }
+
+  .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 0 14px; }
+  .brand { display:flex; align-items:center; gap:12px; }
+  .brand-mark { width:36px; height:36px; border-radius:10px; background:var(--accent); display:grid; place-items:center; color:var(--accent-ink); }
+  .brand h1 { font-size:18px; font-weight:800; letter-spacing:-.01em; }
+  .brand .sub { font-size:12px; color:var(--muted); }
+  .topbar-right { display:flex; align-items:center; gap:8px; }
+  .storage { font-size:12px; color:var(--muted); display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border:1px solid var(--border); border-radius:999px; background:var(--surface); }
+  .storage i { width:8px; height:8px; border-radius:50%; background:var(--faint); display:inline-block; }
+  .storage.cloud i { background:var(--good); }
+  .storage.server i { background:var(--good); }
+  .storage.local i { background:var(--warn); }
+  .storage.file i { background:var(--accent); }
+  .crumb { font-size:13px; color:var(--muted); display:flex; gap:6px; align-items:center; margin-bottom:14px; }
+  .crumb a { color:var(--muted); text-decoration:none; } .crumb a:hover { color:var(--accent); }
+
+  .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .spacer { flex:1; }
+  .muted { color:var(--muted); }
+  .faint { color:var(--faint); }
+  .small { font-size:12px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:16px; }
+  .card.hit { outline:2px solid var(--accent); outline-offset:2px; }
+
+  .sec { padding-top:18px; margin-bottom:12px; }
+  .sec > .section-head h2 { font-size:20px; font-weight:800; letter-spacing:-.01em; }
+  .section-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
+
+  .strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-bottom:16px; }
+  .tile { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:12px 14px; }
+  .tile .k { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .tile .v { font-family:var(--font-display); font-size:26px; font-weight:800; line-height:1.15; margin-top:2px; }
+  @media (max-width:760px) { .strip { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+  .chip { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:600; line-height:18px; border:1px solid transparent; }
+  .chip.accent { background:var(--accent-soft); color:var(--accent); }
+  .chip.good { background:var(--good-soft); color:var(--good); }
+  .chip.bad { background:var(--bad-soft); color:var(--bad); }
+  .chip.plain { background:var(--surface-2); color:var(--muted); }
+
+  .btn { appearance:none; border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:var(--r-md); padding:9px 14px; font-weight:600; cursor:pointer; min-height:40px; display:inline-flex; align-items:center; justify-content:center; gap:6px; text-decoration:none; }
+  .btn:hover { background:var(--surface-2); }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+  .btn.primary:hover { filter:brightness(1.08); }
+  .btn.sm { padding:5px 10px; min-height:30px; font-size:13px; }
+  .btn.ghost { border-color:transparent; background:transparent; }
+  .btn.ghost:hover { background:var(--surface-2); }
+  .gbtn { appearance:none; border:0; border-left:1px solid var(--border); background:var(--surface); color:var(--muted); font-size:12px; font-weight:600; padding:5px 10px; cursor:pointer; }
+  .gbtn:first-child { border-left:0; }
+  .gbtn[aria-selected="true"] { background:var(--accent); color:var(--accent-ink); }
+
+  .bar { height:8px; background:var(--surface-2); border-radius:999px; overflow:hidden; border:1px solid var(--border); display:inline-block; }
+  .bar > i { display:block; height:100%; background:var(--accent); }
+
+  .form { display:grid; gap:12px; }
+  .field { display:grid; gap:4px; }
+  .field label { font-size:12px; font-weight:600; color:var(--muted); }
+  .field input, .field textarea { width:100%; border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface); padding:9px 10px; min-height:40px; }
+  .field textarea { min-height:80px; resize:vertical; }
+  .checks { display:flex; gap:6px; flex-wrap:wrap; }
+  .checks label { display:inline-flex; align-items:center; gap:4px; padding:6px 10px; border:1px solid var(--border); border-radius:999px; font-size:13px; cursor:pointer; background:var(--surface); }
+  .checks label:has(input:checked) { background:var(--accent-soft); border-color:var(--accent-line); color:var(--accent); font-weight:600; }
+  .checks input { margin:0; }
+
+  .modal-bg { position:fixed; inset:0; background:rgba(10,14,13,.5); display:none; align-items:flex-end; justify-content:center; z-index:50; padding:0; }
+  .modal-bg.open { display:flex; }
+  .modal { background:var(--surface); width:100%; max-width:620px; max-height:92vh; overflow:auto; border-radius:16px 16px 0 0; padding:18px 18px 24px; border:1px solid var(--border); }
+  .modal h2 { font-size:17px; font-weight:800; margin-bottom:12px; }
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; flex-wrap:wrap; }
+  @media (min-width:640px) { .modal-bg { align-items:center; padding:20px; } .modal { border-radius:16px; } }
+
+  .empty { text-align:center; padding:36px 16px; color:var(--muted); border:1px dashed var(--border); border-radius:var(--r-lg); }
+  .toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:10px 16px; border-radius:999px; font-weight:600; font-size:14px; box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:opacity .2s; z-index:60; }
+  .toast.show { opacity:1; }
+  @media (prefers-reduced-motion: reduce) { .toast { transition:none; } }
+</style>
+
+<div class="app">
+  <div class="crumb"><a href="../index.html">health.me</a> <span>/</span> <span>Genome</span></div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 3 C7 3 17 6 17 12 C17 18 7 21 7 21"/>
+          <path d="M17 3 C17 3 7 6 7 12 C7 18 17 21 17 21"/>
+          <line x1="8.3" y1="6" x2="15.7" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="8.3" y1="18" x2="15.7" y2="18"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Genome</h1>
+        <div class="sub">23andMe/DNA findings, searchable</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a class="btn sm ghost" href="bloodwork.html">Bloodwork →</a>
+      <a class="btn sm ghost" href="peptide-tracker.html">Stack Tracker →</a>
+      <span class="storage" id="storageBadge"><i></i><span>Loading</span></span>
+    </div>
+  </header>
+
+  <div id="genome"></div>
+</div>
+
+<div class="modal-bg" id="modalBg" role="dialog" aria-modal="true">
+  <div class="modal" id="modal"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- helpers ---------- */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function P(iso) { return iso ? new Date(iso + 'T12:00:00') : null; }
+function fmtDate(d, withYear) { return d ? new Intl.DateTimeFormat('en-US', { month:'short', day:'numeric', ...(withYear ? {year:'numeric'} : {}) }).format(d) : '—'; }
+function n(v, d=2) { if (!Number.isFinite(v)) return '—'; return Number(v.toFixed(d)).toString(); }
+
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1800); }
+
+/* ---------- storage ---------- */
+const LS_KEY = 'genome-v1';
+const COLLECTIONS = ['programs', 'vials', 'logs', 'settings', 'labs', 'genome'];
+function genomeData() { return (store.data.genome && store.data.genome.main) || { summary: null, findings: [] }; }
+
+/* ---------- local file (File System Access API) ---------- */
+const PT_FS_DB = 'pt-fs', PT_FS_STORE = 'handles', PT_FS_KEY = 'data';
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(PT_FS_DB, 1);
+    req.onupgradeneeded = () => { req.result.createObjectStore(PT_FS_STORE); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbGetHandle() {
+  if (!('indexedDB' in window)) return null;
+  try {
+    const db = await idbOpen();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(PT_FS_STORE, 'readonly');
+      const req = tx.objectStore(PT_FS_STORE).get(PT_FS_KEY);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch { return null; }
+}
+async function idbSetHandle(handle) {
+  if (!('indexedDB' in window)) return;
+  const db = await idbOpen();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(PT_FS_STORE, 'readwrite');
+    tx.objectStore(PT_FS_STORE).put(handle, PT_FS_KEY);
+    tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbClearHandle() {
+  if (!('indexedDB' in window)) return;
+  try {
+    const db = await idbOpen();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(PT_FS_STORE, 'readwrite');
+      tx.objectStore(PT_FS_STORE).delete(PT_FS_KEY);
+      tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+    });
+  } catch {}
+}
+
+let pendingFileHandle = null;
+let fileWriteTimer = null;
+
+function setBadge(mode, name) {
+  const badge = $('#storageBadge');
+  if (!badge) return;
+  badge.onclick = null; badge.style.cursor = '';
+  if (mode === 'cloud') { badge.className = 'storage cloud'; badge.querySelector('span').textContent = 'Synced'; }
+  else if (mode === 'server') { badge.className = 'storage server'; badge.querySelector('span').textContent = name ? `Synced · ${name}` : 'Synced'; }
+  else if (mode === 'file') { badge.className = 'storage file'; badge.querySelector('span').textContent = `File: ${name || 'data file'}`; }
+  else if (mode === 'reconnect') {
+    badge.className = 'storage local'; badge.querySelector('span').textContent = `File: ${name || 'data file'} — click to reconnect`;
+    badge.style.cursor = 'pointer'; badge.onclick = () => reconnectFile();
+  } else { badge.className = 'storage local'; badge.querySelector('span').textContent = 'This device only'; }
+}
+
+async function reconnectFile() {
+  const handle = pendingFileHandle;
+  if (!handle) { toast('Nothing to reconnect'); return; }
+  let perm;
+  try { perm = await handle.requestPermission({ mode: 'readwrite' }); }
+  catch { toast('Could not request permission'); return; }
+  if (perm !== 'granted') { toast('Permission denied'); return; }
+  pendingFileHandle = null;
+  const ok = await store.connectFile(handle, { write: false });
+  if (ok) toast('Reconnected to ' + handle.name);
+}
+
+function scheduleFileWrite() {
+  if (!store.fileHandle) return;
+  clearTimeout(fileWriteTimer);
+  fileWriteTimer = setTimeout(flushFileWrite, 300);
+}
+async function flushFileWrite() {
+  if (!store.fileHandle) return;
+  try {
+    const writable = await store.fileHandle.createWritable();
+    await writable.write(JSON.stringify(store.data, null, 2));
+    await writable.close();
+  } catch (e) {
+    toast('Lost access to the data file — back to this device only');
+    store.fileHandle = null; store.mode = 'local';
+    await idbClearHandle();
+    setBadge('local');
+  }
+}
+
+const store = {
+  mode: 'loading', db: null, downloads: null, fileHandle: null, me: null,
+  data: { programs:{}, vials:{}, logs:{}, settings:{}, labs:{}, genome:{} },
+  get settings() { return this.data.settings.main || {}; },
+  loadLocal() { try { const raw = localStorage.getItem(LS_KEY); if (raw) this.data = { ...this.data, ...JSON.parse(raw) }; this.data.labs = this.data.labs || {}; this.data.genome = this.data.genome || {}; } catch {} },
+  saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(this.data)); } catch {} },
+  async connectFile(handle, opts = {}) {
+    if (!opts.write) {
+      let text;
+      try { const file = await handle.getFile(); text = await file.text(); }
+      catch { toast('Could not read the data file'); return false; }
+      if (text && text.trim()) {
+        let parsed;
+        try { parsed = JSON.parse(text); } catch { toast('That file is not valid JSON'); return false; }
+        for (const col of COLLECTIONS) this.data[col] = { ...(this.data[col] || {}), ...(parsed[col] || {}) };
+        this.saveLocal();
+      }
+    }
+    this.fileHandle = handle; this.mode = 'file';
+    try { await idbSetHandle(handle); } catch {}
+    setBadge('file', handle.name);
+    render();
+    await flushFileWrite();
+    return true;
+  },
+  async put(col, id, obj) {
+    obj = { ...obj, id };
+    if (this.db) { try { await this.db.collection(col).doc(id).set(obj); } catch (e) { toast('Save failed: ' + (e.message || e.code)); throw e; } }
+    else if (this.mode === 'server') {
+      try {
+        const res = await fetch(`/api/data/${col}/${encodeURIComponent(id)}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj),
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+      } catch (e) { toast('Save failed — check your connection'); throw e; }
+      this.data[col][id] = obj; render();
+    }
+    else { this.data[col][id] = obj; this.saveLocal(); render(); if (this.mode === 'file') scheduleFileWrite(); }
+  },
+  async putMany(col, recordsById) {
+    const ids = Object.keys(recordsById);
+    if (!ids.length) return 0;
+    if (this.db) {
+      this.bulkImporting = true;
+      try {
+        for (const id of ids) {
+          const obj = { ...recordsById[id], id };
+          try { await this.db.collection(col).doc(id).set(obj); } catch (e) { toast('Save failed: ' + (e.message || e.code)); throw e; }
+        }
+      } finally { this.bulkImporting = false; }
+    } else if (this.mode === 'server') {
+      try {
+        const res = await fetch(`/api/data/${col}/batch`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(recordsById),
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+      } catch (e) { toast('Import failed — check your connection'); throw e; }
+      for (const id of ids) this.data[col][id] = { ...recordsById[id], id };
+    } else {
+      for (const id of ids) this.data[col][id] = { ...recordsById[id], id };
+      this.saveLocal();
+      if (this.mode === 'file') scheduleFileWrite();
+    }
+    render();
+    return ids.length;
+  },
+  async del(col, id) {
+    if (this.db) { try { await this.db.collection(col).doc(id).delete(); } catch (e) { toast('Delete failed: ' + (e.message || e.code)); throw e; } }
+    else if (this.mode === 'server') {
+      try {
+        const res = await fetch(`/api/data/${col}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+      } catch (e) { toast('Delete failed — check your connection'); throw e; }
+      delete this.data[col][id]; render();
+    }
+    else { delete this.data[col][id]; this.saveLocal(); render(); if (this.mode === 'file') scheduleFileWrite(); }
+  },
+  async init() {
+    let db = null;
+    try { db = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch { db = null; }
+    if (db) {
+      this.db = db; this.mode = 'cloud';
+      setBadge('cloud');
+      let pending = COLLECTIONS.length;
+      const done = () => { if (--pending <= 0 && !this.ready) { this.ready = true; render(); } else if (this.ready && !this.bulkImporting) render(); };
+      for (const col of COLLECTIONS) {
+        db.collection(col).onSnapshot(snap => {
+          const o = {}; snap.docs.forEach(d => { if (d.exists) o[d.id] = d.data(); });
+          this.data[col] = o; done();
+        }, err => { toast('Sync error: ' + err.code); done(); });
+      }
+      setTimeout(() => { if (!this.ready) { this.ready = true; render(); } }, 8000);
+    } else {
+      let serverOk = false;
+      try {
+        const meRes = await fetch('/api/me');
+        if (meRes.ok) {
+          const me = await meRes.json();
+          const dataRes = await fetch('/api/data');
+          if (dataRes.ok) {
+            this.me = me;
+            this.data = await dataRes.json();
+            this.mode = 'server'; this.ready = true; serverOk = true;
+            setBadge('server', me.email);
+          }
+        }
+      } catch { /* not served by our backend */ }
+      if (!serverOk) {
+        this.mode = 'local'; this.loadLocal(); this.ready = true;
+        setBadge('local');
+        if ('showOpenFilePicker' in window) {
+          try {
+            const handle = await idbGetHandle();
+            if (handle) {
+              const perm = await handle.queryPermission({ mode: 'readwrite' });
+              if (perm === 'granted') { await this.connectFile(handle, { write: false }); }
+              else { pendingFileHandle = handle; setBadge('reconnect', handle.name); }
+            }
+          } catch {}
+        }
+      }
+      render();
+    }
+    try { this.downloads = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch { this.downloads = null; }
+  }
+};
+
+const labs = () => Object.values(store.data.labs || {}).sort((a, b) => a.at.localeCompare(b.at));
+const LAB_MARKERS_MIN = { GLU:"Fasting glucose",A1C:"HbA1c",WT:"Body weight",HCY:"Homocysteine",FOL:"Folate",B12:"Vitamin B12",CREA:"Creatinine",EGFR:"eGFR",TC:"Total cholesterol",LDL:"LDL",HDL:"HDL",TG:"Triglycerides",APOB:"ApoB" };
+// Genome only needs marker *names* for the "Markers to watch" chip labels —
+// not the full catalog with reference-range info (that lives in bloodwork.html).
+const LAB_BY_ID = id => LAB_MARKERS_MIN[id] ? { id, name: LAB_MARKERS_MIN[id] } : null;
+function flagChip(flag) {
+  if (flag === 'High') return `<span class="chip bad">High</span>`;
+  if (flag === 'Low') return `<span class="chip bad">Low</span>`;
+  if (flag === 'Normal') return `<span class="chip good">Normal</span>`;
+  return '';
+}
+
+/* gene -> lab marker ids with an obvious counterpart — read-only mirror of
+   the same table in bloodwork.html/peptide-tracker.html, kept in sync by
+   hand since each app is self-contained. */
+const GENE_MARKERS = {
+  FTO: ['WT'],
+  GCK: ['GLU', 'A1C'],
+  CDKAL1: ['GLU', 'A1C'],
+  MTNR1B: ['GLU', 'A1C'],
+  CBS: ['HCY', 'FOL', 'B12'],
+  UMOD: ['CREA', 'EGFR'],
+  'CDKN2B-AS1': ['TC', 'LDL', 'HDL', 'TG', 'APOB'],
+  MIA3: ['TC', 'LDL', 'HDL', 'TG', 'APOB'],
+};
+
+/* ---------- genome ---------- */
+let genomeState = { q: '', cats: [], sort: 'magnitude' };
+try { Object.assign(genomeState, JSON.parse(localStorage.getItem('pt-genome') || '{}')); } catch {}
+function saveGenomeState() { try { localStorage.setItem('pt-genome', JSON.stringify(genomeState)); } catch {} }
+function genomeCategoryCounts() {
+  const counts = {};
+  for (const f of genomeData().findings) counts[f.category] = (counts[f.category] || 0) + 1;
+  return counts;
+}
+function filteredFindings() {
+  const q = (genomeState.q || '').trim().toLowerCase();
+  let list = genomeData().findings;
+  if (genomeState.cats && genomeState.cats.length) list = list.filter(f => genomeState.cats.includes(f.category));
+  if (q) list = list.filter(f => f.name.toLowerCase().includes(q) || (f.gene || '').toLowerCase().includes(q) || (f.summary || '').toLowerCase().includes(q));
+  const arr = list.slice();
+  if (genomeState.sort === 'category') arr.sort((a, b) => a.category.localeCompare(b.category) || (b.magnitude || 0) - (a.magnitude || 0));
+  else if (genomeState.sort === 'gene') arr.sort((a, b) => (a.gene || '￿').localeCompare(b.gene || '￿') || (b.magnitude || 0) - (a.magnitude || 0));
+  else arr.sort((a, b) => (b.magnitude || 0) - (a.magnitude || 0));
+  return arr;
+}
+function findingMarkersHtml(f) {
+  const ids = f.gene && GENE_MARKERS[f.gene];
+  if (!ids) return '';
+  return `<div class="small muted" style="margin-top:8px">Markers to watch: ${ids.map(mid => {
+    const cat = LAB_BY_ID(mid); if (!cat) return '';
+    const es = labs().filter(e => e.marker === mid);
+    if (!es.length) return `<a class="chip plain" href="bloodwork.html?marker=${encodeURIComponent(mid)}">${esc(cat.name)} — not tracked yet</a>`;
+    const last = es[es.length - 1];
+    return `<a class="chip plain" href="bloodwork.html?marker=${encodeURIComponent(mid)}">${esc(cat.name)} ${n(last.value, 1)}${last.unit ? ' ' + esc(last.unit) : ''}</a> ${flagChip(last.flag)}`;
+  }).join(' ')}</div>`;
+}
+function findingCard(f) {
+  const m = f.magnitude || 0;
+  const mx = Math.max(f.maxMagnitude || 0, m, 1);
+  const cls = m >= 3 ? 'bad' : m >= 2 ? 'warn' : 'muted';
+  const pct = Math.max(3, Math.min(100, m / mx * 100));
+  const miscall = /^possible miscall/i.test(f.summary || '');
+  return `<div class="card" style="margin-bottom:10px" id="finding-${esc(f.gene || f.name).replace(/[^\w-]/g, '_')}">
+    <div class="row" style="margin-bottom:6px;flex-wrap:wrap">
+      <span class="num" style="font-weight:600">${esc(f.name)}</span>
+      ${f.gene ? `<span class="chip accent">${esc(f.gene)}</span>` : ''}
+      <span class="chip plain">${esc(f.category)}</span>
+      ${miscall ? `<span class="chip plain">possible miscall</span>` : ''}
+      <span class="spacer"></span>
+      ${f.publications != null ? `<span class="small muted">${f.publications} publication${f.publications === 1 ? '' : 's'}</span>` : ''}
+    </div>
+    <div class="row" style="gap:8px;margin-bottom:6px">
+      <div class="bar" style="width:140px"><i style="width:${pct}%;background:var(--${cls})"></i></div>
+      <span class="small muted num">${f.magnitude != null ? n(f.magnitude, 1) : '—'}${f.maxMagnitude != null ? ' / ' + n(f.maxMagnitude, 1) : ''}</span>
+    </div>
+    <div>${esc(f.summary || '')}</div>
+    ${f.chrom ? `<div class="small faint" style="margin-top:6px">chr${esc(f.chrom)}:${f.pos ?? '—'}</div>` : ''}
+    ${findingMarkersHtml(f)}
+  </div>`;
+}
+function genomeView() {
+  const g = genomeData();
+  const importBtn = `<button class="btn sm" data-action="import-genome">${g.summary ? 'Re-import' : 'Import genome data'}</button>`;
+  if (!g.summary) {
+    return `<section class="sec"><div class="section-head"><h2>Genome</h2>${importBtn}</div>
+      <div class="empty small">No genome data imported yet. Import a processed findings file (rsid/gene/risk summaries — the same shape as a Promethease-style export) to see it here. Raw 23andMe/AncestryDNA SNP files aren't parsed by this app; import already-curated findings.</div>
+    </section>`;
+  }
+  const s = g.summary;
+  const strip = `<div class="strip">
+      <div class="tile"><div class="k">SNPs called</div><div class="v num">${(s.total || 0).toLocaleString()}</div></div>
+      <div class="tile"><div class="k">Call rate</div><div class="v num">${s.callRate != null ? (s.callRate * 100).toFixed(1) + '%' : '—'}</div></div>
+      <div class="tile"><div class="k">Findings</div><div class="v num">${g.findings.length}</div></div>
+      <div class="tile"><div class="k">Export date</div><div class="v" style="font-size:18px">${s.exportDate ? fmtDate(P(s.exportDate), true) : '—'}</div></div>
+    </div>`;
+  const counts = genomeCategoryCounts();
+  const cats = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b));
+  const catChips = `<div class="checks" style="margin-bottom:10px">${cats.map(c => `<label><input type="checkbox" data-gcat="${esc(c)}" ${genomeState.cats.includes(c) ? 'checked' : ''}> ${esc(c)} <span class="faint">${counts[c]}</span></label>`).join('')}</div>`;
+  const sorts = [['magnitude', 'Magnitude'], ['category', 'Category'], ['gene', 'Gene']];
+  const sortRow = `<div class="row" style="margin-bottom:12px;gap:0"><span class="small muted" style="margin-right:8px">Sort</span>${sorts.map(([k, label]) => `<button class="gbtn" data-action="gsort" data-sort="${k}" aria-selected="${genomeState.sort === k}">${label}</button>`).join('')}</div>`;
+  const searchRow = `<div class="field" style="margin-bottom:10px;max-width:360px"><input id="genomeSearch" type="text" placeholder="Search rsid, gene, or summary…" value="${esc(genomeState.q || '')}"></div>`;
+  const list = filteredFindings();
+  const head = `<section class="sec"><div class="section-head"><h2>Genome</h2><div class="row">${importBtn}<span class="small muted">${list.length} of ${g.findings.length}</span></div></div>${strip}${searchRow}${catChips}${sortRow}</section>`;
+  const body = list.length
+    ? `<section class="sec">${list.map(findingCard).join('')}</section>`
+    : `<section class="sec"><div class="empty small">No findings match those filters.</div></section>`;
+  return head + body;
+}
+
+function importGenomeData() {
+  openModal(`<h2>Import genome data</h2><p class="small muted" style="margin-bottom:10px">Paste a processed findings export (like <code>data/genome-findings.json</code> — <code>{"summary":{…},"findings":[…]}</code>), or choose the file. This replaces your current genome data.</p>
+    <div class="form"><input type="file" id="importGenomeFile" accept="application/json"><div class="field"><textarea id="importGenomeText" placeholder='{"summary":{…},"findings":[…]}'></textarea></div></div>
+    <div class="modal-actions"><button type="button" class="btn" data-action="close">Cancel</button><button type="button" class="btn primary" id="importGenomeGo">Import</button></div>`);
+  $('#importGenomeFile').addEventListener('change', e => { const f = e.target.files[0]; if (f) f.text().then(t => $('#importGenomeText').value = t); });
+  $('#importGenomeGo').addEventListener('click', async () => {
+    let j; try { j = JSON.parse($('#importGenomeText').value); } catch { toast('That is not valid JSON'); return; }
+    if (!j || typeof j !== 'object' || !Array.isArray(j.findings)) { toast('Expected an object with a "findings" array'); return; }
+    closeModal();
+    await store.put('genome', 'main', { summary: j.summary || null, findings: j.findings });
+    toast(`Imported ${j.findings.length} genome finding${j.findings.length === 1 ? '' : 's'}`);
+  });
+}
+
+/* ---------- modals ---------- */
+function openModal(html) { $('#modal').innerHTML = html; $('#modalBg').classList.add('open'); const f = $('#modal input, #modal select'); f && f.focus(); }
+function closeModal() { $('#modalBg').classList.remove('open'); $('#modal').innerHTML = ''; }
+let modalDownOnBackdrop = false;
+$('#modalBg').addEventListener('pointerdown', e => { modalDownOnBackdrop = e.target === e.currentTarget; });
+$('#modalBg').addEventListener('click', e => { if (e.target === e.currentTarget && modalDownOnBackdrop) closeModal(); modalDownOnBackdrop = false; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function render() {
+  if (!store.ready) { $('#genome').innerHTML = '<div class="empty">Loading your genome data…</div>'; return; }
+  $('#genome').innerHTML = genomeView();
+  applyDeepLink();
+}
+
+// ?gene=X deep link from Stack Tracker's "Genetic context" chip.
+let deepLinkApplied = false;
+function applyDeepLink() {
+  if (deepLinkApplied) return;
+  const params = new URLSearchParams(location.search);
+  const gene = params.get('gene');
+  if (!gene) return;
+  deepLinkApplied = true;
+  genomeState.q = gene; saveGenomeState();
+  $('#genome').innerHTML = genomeView();
+  const el = document.getElementById('finding-' + gene.replace(/[^\w-]/g, '_'));
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+document.addEventListener('change', e => {
+  const gc = e.target.closest('[data-gcat]');
+  if (gc) {
+    const cat = gc.dataset.gcat;
+    genomeState.cats = gc.checked ? [...genomeState.cats, cat] : genomeState.cats.filter(c => c !== cat);
+    saveGenomeState(); $('#genome').innerHTML = genomeView();
+  }
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'genomeSearch') { genomeState.q = e.target.value; saveGenomeState(); $('#genome').innerHTML = genomeView(); }
+});
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-action]'); if (!b) return;
+  const a = b.dataset.action;
+  switch (a) {
+    case 'close': closeModal(); break;
+    case 'import-genome': importGenomeData(); break;
+    case 'gsort': genomeState.sort = b.dataset.sort; saveGenomeState(); $('#genome').innerHTML = genomeView(); break;
+  }
+});
+
+render();
+store.init();
+})();
+</script>

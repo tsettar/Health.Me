@@ -15,12 +15,16 @@ COPY seed_admin_data.py .
 # becomes reachable by them.
 COPY data ./data
 
-# The actual servable tree: just the hub and the one real app. Deliberately
-# does NOT include apps/blood-test-dashboard.html or apps/genome-dashboard.html
-# (Tim's real historical labs / raw 23andMe SNP data) — those stay in the
-# repo (never delete Tim's files) but must never be copied into the image.
+# The actual servable tree: the hub and the four apps. Deliberately does NOT
+# include apps/blood-test-dashboard.html or apps/genome-dashboard.html (Tim's
+# real historical labs / raw 23andMe SNP data, superseded by bloodwork.html/
+# genome.html) — those stay in the repo (never delete Tim's files) but must
+# never be copied into the image.
 COPY index.html ./static/index.html
 COPY apps/peptide-tracker.html ./static/apps/peptide-tracker.html
+COPY apps/bloodwork.html ./static/apps/bloodwork.html
+COPY apps/genome.html ./static/apps/genome.html
+COPY apps/admin.html ./static/apps/admin.html
 COPY assets ./static/assets
 
 EXPOSE 8080

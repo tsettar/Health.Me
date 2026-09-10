@@ -13,6 +13,8 @@
     --bg:#F3F5F4; --surface:#FFFFFF; --surface-2:#E9EEEC; --border:#D3DBD8; --divider:#E3E9E7;
     --ink:#16201D; --muted:#5C6966; --faint:#8C9895;
     --accent:#3D4FC4; --accent-ink:#FFFFFF; --accent-soft:#E4E7FA; --accent-line:#B7BEEF;
+    --good:#1F7A4D; --good-soft:#DDF1E6;
+    --teal:#0E7C86; --teal-soft:#DBF0F2;
     --shadow:0 1px 2px rgba(22,32,29,.06), 0 8px 24px rgba(22,32,29,.06);
     --font-display:'Manrope','Segoe UI',system-ui,sans-serif;
     --font-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
@@ -24,6 +26,8 @@
       --bg:#0F1513; --surface:#171E1C; --surface-2:#1F2826; --border:#2C3735; --divider:#243030;
       --ink:#E6ECE9; --muted:#A2AEAA; --faint:#6F7B78;
       --accent:#8E9CFF; --accent-ink:#0F1513; --accent-soft:#252B4D; --accent-line:#3F4A8F;
+      --good:#6CCB95; --good-soft:#173325;
+      --teal:#4FC3CE; --teal-soft:#123338;
       --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
       color-scheme: dark;
     }
@@ -32,39 +36,62 @@
     --bg:#0F1513; --surface:#171E1C; --surface-2:#1F2826; --border:#2C3735; --divider:#243030;
     --ink:#E6ECE9; --muted:#A2AEAA; --faint:#6F7B78;
     --accent:#8E9CFF; --accent-ink:#0F1513; --accent-soft:#252B4D; --accent-line:#3F4A8F;
+    --good:#6CCB95; --good-soft:#173325;
+    --teal:#4FC3CE; --teal-soft:#123338;
     --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
     color-scheme: dark;
   }
   * { box-sizing:border-box; }
   html, body { margin:0; width:100%; }
   body { background:var(--bg); color:var(--ink); font:15px/1.5 var(--font-body); }
+  a { color:var(--accent); }
+
   .topbar {
-    display:flex; align-items:center; padding:14px 24px;
-    background:var(--surface); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 24px;
+    background:var(--surface); border-bottom:1px solid var(--border); position:relative; z-index:2;
   }
   .topbar img { height:64px; width:auto; display:block; }
-  .wrap { padding:40px 24px 80px; }
+  .account { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted); }
+  .account .who { display:flex; align-items:center; gap:6px; }
+  .account .dot { width:7px; height:7px; border-radius:50%; background:var(--good); }
+  .account a.admin-link {
+    font-weight:600; color:var(--accent); text-decoration:none; padding:5px 11px;
+    border:1px solid var(--accent-line); border-radius:999px; background:var(--accent-soft);
+  }
+  .account a.admin-link:hover { filter:brightness(1.05); }
+
+  /* soft decorative background behind the hero — flat brand-colored blobs, no photography */
+  .hero { position:relative; overflow:hidden; }
+  .hero::before, .hero::after {
+    content:''; position:absolute; border-radius:50%; filter:blur(60px); z-index:0; opacity:.35;
+  }
+  .hero::before { width:420px; height:420px; background:var(--accent-soft); top:-180px; left:-120px; }
+  .hero::after { width:360px; height:360px; background:var(--teal-soft); top:-140px; right:-100px; }
+  :root[data-theme="dark"] .hero::before, :root[data-theme="dark"] .hero::after { opacity:.5; }
+
+  .wrap { padding:40px 24px 80px; position:relative; z-index:1; }
   .intro { text-align:center; max-width:640px; margin:0 auto 40px; }
-  h1 { font-family:var(--font-display); font-weight:800; font-size:34px; margin:0 0 8px; }
+  h1 { font-family:var(--font-display); font-weight:800; font-size:36px; margin:0 0 8px; letter-spacing:-.01em; }
   .sub { color:var(--muted); font-size:15px; }
-  .sub a { color:var(--accent); }
-  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:16px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(270px,1fr)); gap:16px; }
   a.card {
     display:flex; flex-direction:column; gap:10px; padding:22px;
-    background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
+    background:var(--surface); border:1px solid var(--border); border-top:3px solid var(--card-accent, var(--accent));
+    border-radius:var(--r-lg);
     text-decoration:none; color:inherit; box-shadow:var(--shadow);
-    transition:transform .12s ease, border-color .12s ease;
+    transition:transform .12s ease, border-color .12s ease, box-shadow .12s ease;
   }
-  a.card:hover { transform:translateY(-2px); border-color:var(--accent-line); }
+  a.card:hover { transform:translateY(-3px); border-color:var(--accent-line); box-shadow:0 4px 8px rgba(22,32,29,.08), 0 16px 32px rgba(22,32,29,.1); }
   .card-head { display:flex; align-items:center; gap:10px; }
   .icon {
-    flex:none; width:40px; height:40px; border-radius:var(--r-md); background:var(--accent-soft);
-    display:flex; align-items:center; justify-content:center; font-size:20px;
+    flex:none; width:40px; height:40px; border-radius:var(--r-md); background:var(--icon-bg, var(--accent-soft));
+    display:flex; align-items:center; justify-content:center; font-size:20px; color:var(--icon-fg, var(--accent));
   }
   .card h2 { font-family:var(--font-display); font-size:17px; font-weight:700; margin:0; }
   .card p { margin:0; color:var(--muted); font-size:13px; line-height:1.5; }
   .card .tag {
-    margin-top:auto; padding-top:10px; font-size:11.5px; font-weight:600; color:var(--accent);
+    margin-top:auto; align-self:flex-start; padding:6px 12px; border-radius:999px;
+    font-size:12px; font-weight:700; color:var(--accent-ink); background:var(--card-accent, var(--accent));
     display:flex; align-items:center; gap:4px;
   }
   footer { margin-top:56px; color:var(--faint); font-size:12px; }
@@ -74,27 +101,80 @@
 <body>
   <header class="topbar">
     <img src="assets/logo-header.png" alt="health.me">
+    <div class="account" id="account" hidden></div>
   </header>
-  <div class="wrap">
-    <div class="intro">
-      <h1>Health Dashboard</h1>
-      <p class="sub">One place to reach every personal health tracker &mdash; protocols, labs, and genome.</p>
-    </div>
+  <div class="hero">
+    <div class="wrap">
+      <div class="intro">
+        <h1>Health Dashboard</h1>
+        <p class="sub">One place to reach every personal health tracker &mdash; protocols, bloodwork, and genome.</p>
+      </div>
 
-    <div class="grid">
-      <a class="card" href="apps/peptide-tracker.html">
-        <div class="card-head">
-          <div class="icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L21 7.5 L12 12 L3 7.5 Z"/><path d="M3 11.5 L12 16 L21 11.5"/><path d="M3 15.5 L12 20 L21 15.5"/></svg>
+      <div class="grid">
+        <a class="card" href="apps/peptide-tracker.html" style="--card-accent:var(--accent); --icon-bg:var(--accent-soft); --icon-fg:var(--accent)">
+          <div class="card-head">
+            <div class="icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L21 7.5 L12 12 L3 7.5 Z"/><path d="M3 11.5 L12 16 L21 11.5"/><path d="M3 15.5 L12 20 L21 15.5"/></svg>
+            </div>
+            <h2>Stack Tracker</h2>
           </div>
-          <h2>Stack Tracker</h2>
-        </div>
-        <p>Programs, labs and genome in one place &mdash; protocols, vials, dose schedules, injection logs, a full lab marker catalog with reference ranges, and a genome screen with 213 findings cross-linked to the markers that watch them.</p>
-        <span class="tag">Open &rarr;</span>
-      </a>
-    </div>
+          <p>Protocols, vials, dose schedules and injection logs &mdash; plus a quick labs/genetic-context view right on each program.</p>
+          <span class="tag">Open &rarr;</span>
+        </a>
 
-    <footer>Wellness by Oxterlabs &middot; <a href="https://github.com/tsettar/Health.Me">github.com/tsettar/Health.Me</a></footer>
+        <a class="card" href="apps/bloodwork.html" style="--card-accent:var(--teal); --icon-bg:var(--teal-soft); --icon-fg:var(--teal)">
+          <div class="card-head">
+            <div class="icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 C12 3 6 10.5 6 15 a6 6 0 0 0 12 0 C18 10.5 12 3 12 3 Z"/></svg>
+            </div>
+            <h2>Bloodwork</h2>
+          </div>
+          <p>A full lab marker catalog with reference ranges, trend charts, and the genetic context behind each result.</p>
+          <span class="tag">Open &rarr;</span>
+        </a>
+
+        <a class="card" href="apps/genome.html" style="--card-accent:var(--good); --icon-bg:var(--good-soft); --icon-fg:var(--good)">
+          <div class="card-head">
+            <div class="icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 3 C7 3 17 6 17 12 C17 18 7 21 7 21"/>
+                <path d="M17 3 C17 3 7 6 7 12 C7 18 17 21 17 21"/>
+                <line x1="8.3" y1="6" x2="15.7" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="8.3" y1="18" x2="15.7" y2="18"/>
+              </svg>
+            </div>
+            <h2>Genome</h2>
+          </div>
+          <p>213 curated 23andMe findings, searchable and sortable, cross-linked to the lab markers that watch them.</p>
+          <span class="tag">Open &rarr;</span>
+        </a>
+      </div>
+
+      <footer>Wellness by Oxterlabs &middot; <a href="https://github.com/tsettar/Health.Me">github.com/tsettar/Health.Me</a></footer>
+    </div>
   </div>
+
+  <script>
+    // Progressive enhancement: only succeeds when actually served by
+    // health.me's backend (behind Cloudflare Access). A plain static
+    // preview / GitHub Pages / local file just leaves the account area
+    // hidden — same probe-and-fall-back pattern the apps use for 'server' mode.
+    (async () => {
+      try {
+        const res = await fetch('/api/me');
+        if (!res.ok) return;
+        const me = await res.json();
+        const el = document.getElementById('account');
+        const who = document.createElement('span'); who.className = 'who';
+        const dot = document.createElement('span'); dot.className = 'dot'; who.appendChild(dot);
+        who.appendChild(document.createTextNode('Signed in as ' + me.email));
+        el.appendChild(who);
+        if (me.is_admin) {
+          const a = document.createElement('a'); a.className = 'admin-link'; a.href = 'apps/admin.html'; a.textContent = 'Admin';
+          el.appendChild(a);
+        }
+        el.hidden = false;
+      } catch {}
+    })();
+  </script>
 </body>
 </html>
